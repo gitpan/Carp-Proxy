@@ -1,0 +1,90 @@
+Carp-Proxy
+
+NAME
+    Carp::Proxy - Diagnostic delegation
+
+SYNOPSIS
+    use Carp::Proxy;
+
+    fatal 'handler_subroutine', @optional_arguments
+        if not $assertion;
+
+    sub handler_subroutine {
+        my( $proxy_object, @optional_arguments ) = @_;
+
+        $proxy_object->filled( $explanation );
+        return;
+    }
+
+DESCRIPTION
+    Assertion testing in Perl is performed with idioms like
+
+        $assertion or die 'explanation';
+
+    These idioms are attractive when the explanation is simple.  If the
+    explanation grows to more than a few words, or if it requires
+    calculation, then the surrounding flow becomes disrupted.  The
+    solution, of course, is to offload failing assertions to a function.
+
+    Functions that perform diagnosis, compose error messages and throw
+    exceptions tend to have repeated code at the beginning and end, with
+    unique content somewhere in the middle.  Carp::Proxy proposes a "Proxy"
+    function to factor out these repeated sections.
+
+    Proxy functions, like fatal() above, are elaborate replacements for
+    warn(), die() or Carp::confess().
+
+    An exception object will be created by the Proxy.  The object captures
+    program state like $EVAL_ERROR, $CHILD_ERROR and $ERRNO.  The Proxy
+    passes the object to a user-defined "Handler" which is responsible for
+    constructing a diagnostic message.  Object methods aid in message
+    composition.  Object attributes influence message formatting and
+    control stacktrace generation.
+
+    Disposition (throwing) is performed, by the Proxy, when the Handler
+    returns.  The default disposition passes the object to die().  The
+    object overloads stringification which renders uncaught exceptions as
+    nicely formatted messages.
+
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for this module with the
+perldoc command.
+
+    perldoc Carp::Proxy
+
+You can also look for information at:
+
+    RT, CPAN's request tracker (report bugs here)
+        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Carp-Proxy
+
+    AnnoCPAN, Annotated CPAN documentation
+        http://annocpan.org/dist/Carp-Proxy
+
+    CPAN Ratings
+        http://cpanratings.perl.org/d/Carp-Proxy
+
+    Search CPAN
+        http://search.cpan.org/dist/Carp-Proxy/
+
+
+LICENSE AND COPYRIGHT
+
+Copyright (C) 2014 Paul Liebert
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
