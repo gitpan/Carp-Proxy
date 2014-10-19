@@ -16,11 +16,25 @@ WriteMakefile
 
      BUILD_REQUIRES =>
      {
-      'Test::More' => 0,
+      'English'               => 0,
+      'File::Basename'        => 0,
+      'File::Spec::Functions' => 0,
+      'Moose'                 => 0,
+      'Test::Exception'       => 0,
+      'Test::More'            => 0,
+      'YAML::XS'              => 0,
      },
      PREREQ_PM     =>
      {
-      'Test::More' => 0,
+      'Config'     => 0,
+      'Cwd'        => 0,
+      'English'    => 0,
+      'Moose'      => 0,
+      'overload'   => 0,
+      'Pod::Usage' => 0,
+      'Readonly'   => 0,
+      'Sub::Name'  => 0,
+      'YAML::XS'   => 0,
      },
 
      dist          =>

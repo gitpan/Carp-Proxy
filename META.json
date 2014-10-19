@@ -22,7 +22,13 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::More" : "0"
+            "English" : "0",
+            "File::Basename" : "0",
+            "File::Spec::Functions" : "0",
+            "Moose" : "0",
+            "Test::Exception" : "0",
+            "Test::More" : "0",
+            "YAML::XS" : "0"
          }
       },
       "configure" : {
@@ -32,11 +38,19 @@
       },
       "runtime" : {
          "requires" : {
-            "Test::More" : "0",
+            "Config" : "0",
+            "Cwd" : "0",
+            "English" : "0",
+            "Moose" : "0",
+            "Pod::Usage" : "0",
+            "Readonly" : "0",
+            "Sub::Name" : "0",
+            "YAML::XS" : "0",
+            "overload" : "0",
             "perl" : "5.014000"
          }
       }
    },
    "release_status" : "stable",
-   "version" : "0.04"
+   "version" : "0.05"
 }
