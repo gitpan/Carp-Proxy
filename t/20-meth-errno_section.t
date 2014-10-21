@@ -64,12 +64,15 @@ sub main {
     # first 100 numbers looking for anything that yields some kind of string
     #-----
     my $msg;
-    for( my $num=0;   $num < 100;   ++$num ) {
+    my $num = 0;
+    while( $num < 100 ) {
 
         $ERRNO = $num;
         $msg = "" . $ERRNO;
         last
             if length $msg;
+
+        ++$num;
     }
 
     #-----
@@ -89,27 +92,39 @@ sub main {
         #-----
         $msg =~ s/ / [ ] /g;
 
+        $ERRNO = $num;
         throws_ok{ fatal 'handler'; }
             qr{
                   ^
-                  \Q  *** System Diagnostic ***\E  \r? \n
-                  [ ]{4} $msg
+                  (?:
+                      \Q  *** System Diagnostic ***\E  \r? \n
+                      [ ]{4} $msg \s+
+                  )?
+                  \Q  *** Stacktrace ***\E  \r? \n
               }xm,
             'errno_section without title';
 
+        $ERRNO = $num;
         throws_ok{ fatal 'handler', 'Optional Title'; }
             qr{
                   ^
-                  \Q  *** Optional Title ***\E  \r? \n
-                  [ ]{4} $msg
+                  (?:
+                      \Q  *** Optional Title ***\E  \r? \n
+                      [ ]{4} $msg \s+
+                  )?
+                  \Q  *** Stacktrace ***\E  \r? \n
               }xm,
             'errno_section with title';
 
+        $ERRNO = $num;
         throws_ok{ fatal1 'handler'; }
             qr{
                   ^
-                  \Q  *** Description ***\E  \r? \n
-                  [ ]{4} errno: [ ] $msg
+                  (?:
+                      \Q  *** Description ***\E  \r? \n
+                      [ ]{4} errno: [ ] $msg \s+
+                  )?
+                  \Q  *** Stacktrace ***\E  \r? \n
               }xm,
             'Sub-class errno_section() override';
     }

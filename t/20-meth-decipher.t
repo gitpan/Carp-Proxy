@@ -75,7 +75,7 @@ sub main {
                     |
                         signal [ ] $sig
                     )
-                    \. $
+                    \. \s* $
           }xm,
         "decipher_child_error() correctly handles exit code $sig";
 
@@ -89,7 +89,7 @@ sub main {
                     |
                         signal [ ] $sig
                     )
-                    \. \s+ There \s+ was \s+ a \s+ core \s+ dump [.] $
+                    \. \s+ There \s+ was \s+ a \s+ core \s+ dump [.] \s* $
               }xm,
               "decipher_child_error() correctly handles exit code $sig + 128";
     }

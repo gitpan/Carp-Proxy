@@ -1,5 +1,13 @@
 Revision history for Carp-Proxy
 
-0.01    Date/time
-        First version, released on an unsuspecting world.
+0.06    Oct 21 2014
+        Tests were failing on windows for what I assume were whitespace
+        issues.  In addition, I was missing three test dependencies in
+        Makefile.PL
+
+0.05    Oct 18 2014
+        I neglected to specify dependencies in Makefile.PL
+
+0.04    Oct 15 2014
+        First version released to CPAN
 

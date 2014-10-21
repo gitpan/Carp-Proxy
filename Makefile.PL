@@ -20,8 +20,11 @@ WriteMakefile
       'File::Basename'        => 0,
       'File::Spec::Functions' => 0,
       'Moose'                 => 0,
+      'Pod::Coverage'         => '0.18',
       'Test::Exception'       => 0,
       'Test::More'            => 0,
+      'Test::Pod'             => '1.22',
+      'Test::Pod::Coverage'   => '1.08',
       'YAML::XS'              => 0,
      },
      PREREQ_PM     =>
