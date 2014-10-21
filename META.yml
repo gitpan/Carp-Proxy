@@ -37,4 +37,4 @@ requires:
   YAML::XS: 0
   overload: 0
   perl: 5.014000
-version: 0.06
+version: 0.07

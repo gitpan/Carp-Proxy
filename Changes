@@ -1,5 +1,8 @@
 Revision history for Carp-Proxy
 
+0.07    Oct 21 2014
+        POD had extraneous =for html tags
+
 0.06    Oct 21 2014
         Tests were failing on windows for what I assume were whitespace
         issues.  In addition, I was missing three test dependencies in

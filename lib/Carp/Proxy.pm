@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use 5.014;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Moose;
 
@@ -1532,8 +1532,6 @@ YAML
 
 Carp::Proxy - Diagnostic delegation
 
-=for html <a name="SYNOPSIS:"/>
-
 =head1 SYNOPSIS
 
     use Carp::Proxy;
@@ -1547,8 +1545,6 @@ Carp::Proxy - Diagnostic delegation
         $proxy_object->filled( 'explanation' );
         return;
     }
-
-=for html <a name="DESCRIPTION:"/>
 
 =head1 DESCRIPTION
 
@@ -1606,8 +1602,6 @@ All you need for most day-to-day work is the Proxy and two methods:
 Use B<fatal()> wherever you currently use B<die()>.  Your Handler should
 compose the diagnostic message using the L<filled()|/METHODS:filled> and/or
 L<fixed()|/METHODS:fixed> methods.
-
-=for html <a name="SAMPLE-OUTPUT:"/>
 
 =head1 SAMPLE OUTPUT
 
@@ -1669,8 +1663,6 @@ overhead.  Handlers are easy to write.
         $cp->errno_section;
         return;
     }
-
-=for html <a name="EXPORTS:"/>
 
 =head1 EXPORTS
 
@@ -1734,8 +1726,6 @@ You can invoke B<import()>, at any time, to build Proxy subroutines.
     use Carp::Proxy ();
     ...
     Carp::Proxy->import( expire => { end_hook => $log_me });
-
-=for html <a name="PROXY-INVOCATION:"/>
 
 =head1 PROXY INVOCATION
 
@@ -1815,8 +1805,6 @@ If L<perform_disposition()|/METHODS:perform_disposition> returns, rather
 than throwing, then the returned value is propagated as the return value
 of the Proxy.
 
-=for html <a name="ATTRIBUTES:"/>
-
 =head1 ATTRIBUTES
 
 All B<Carp::Proxy> object attributes have correspondingly named accessors.
@@ -1835,8 +1823,6 @@ attribute value if one is not provided.  Builder
 methods are named with a prefix of B<'_build_'>.  You can change default
 values for these attributes with arguments to B<use()> / B<import()>,
 or by providing custom builder functions in a sub-class.
-
-=for html <a name="ATTRIBUTES:arg"/>
 
 =head2 arg
 
@@ -1857,8 +1843,6 @@ B<Try::Tiny>.
 =item Mutability: Read-Only
 
 =back
-
-=for html <a name="ATTRIBUTES:as_yaml"/>
 
 =head2 as_yaml
 
@@ -1884,8 +1868,6 @@ propagate exceptions up from child processes.
 =item Mutability: Read-Write
 
 =back
-
-=for html <a name="ATTRIBUTES:banner_title"/>
 
 =head2 banner_title
 
@@ -1913,8 +1895,6 @@ first word(s) in the Banner.
 
 =back
 
-=for html <a name="ATTRIBUTES:begin_hook"/>
-
 =head2 begin_hook
 
 If I<begin_hook> contains a CodeRef then the Proxy will call the CodeRef
@@ -1938,8 +1918,6 @@ every exception - before any Handler gets control.
 
 =back
 
-=for html <a name="ATTRIBUTES:body_indent"/>
-
 =head2 body_indent
 
 I<body_indent> influences the presentation of paragraphs created
@@ -1962,8 +1940,6 @@ that is applied to Section paragraphs.
 
 =back
 
-=for html <a name="ATTRIBUTES:child_error"/>
-
 =head2 child_error
 
 I<child_error> holds the value of Perl's B<$CHILD_ERROR ($?)>, as harvested
@@ -1983,8 +1959,6 @@ from the invoking environment.
 
 =back
 
-=for html <a name="ATTRIBUTES:columns"/>
-
 =head2 columns
 
 The I<columns> attribute sets the line width target for the Banner and
@@ -2003,8 +1977,6 @@ for any filled Sections.  Values below about 30 are not practical.
 =item Mutability: Read-Write
 
 =back
-
-=for html <a name="ATTRIBUTES:context"/>
 
 =head2 context
 
@@ -2040,8 +2012,6 @@ The I<context> attribute controls the generation of a stacktrace Section.
 
 =back
 
-=for html <a name="ATTRIBUTES:disposition"/>
-
 =head2 disposition
 
 The I<disposition> attribute controls how the exception is thrown.
@@ -2072,8 +2042,6 @@ The I<disposition> attribute controls how the exception is thrown.
 
 =back
 
-=for html <a name="ATTRIBUTES:end_hook"/>
-
 =head2 end_hook
 
 If I<end_hook> contains a CodeRef then the Proxy will call the CodeRef
@@ -2097,8 +2065,6 @@ their last action.  An example might be writing to a logfile.
 
 =back
 
-=for html <a name="ATTRIBUTES:eval_error"/>
-
 =head2 eval_error
 
 The I<eval_error> attribute holds the value of Perl's B<$EVAL_ERROR ($@)>,
@@ -2118,8 +2084,6 @@ as harvested from the invoking environment.
 
 =back
 
-=for html <a name="ATTRIBUTES:exit_code"/>
-
 =head2 exit_code
 
 I<exit_code> is used to set the value harvested by the operating system
@@ -2138,8 +2102,6 @@ when a process dies.
 =item Mutability: Read-Write
 
 =back
-
-=for html <a name="ATTRIBUTES:fq_proxy_name"/>
 
 =head2 fq_proxy_name
 
@@ -2161,8 +2123,6 @@ a Handler wants to know the parental Proxy.
 
 =back
 
-=for html <a name="ATTRIBUTES:handler_name"/>
-
 =head2 handler_name
 
 The Proxy saves its first argument, the Handler, in I<handler_name>.
@@ -2180,8 +2140,6 @@ The Proxy saves its first argument, the Handler, in I<handler_name>.
 =item Mutability: Read-Write
 
 =back
-
-=for html <a name="ATTRIBUTES:handler_pkgs"/>
 
 =head2 handler_pkgs
 
@@ -2204,8 +2162,6 @@ the Proxy after object construction.
 
 =back
 
-=for html <a name="ATTRIBUTES:handler_prefix"/>
-
 =head2 handler_prefix
 
 I<handler_prefix> affects how the search for a Handler is performed.
@@ -2226,8 +2182,6 @@ is based on I<handler_prefix>.
 
 =back
 
-=for html <a name="ATTRIBUTES:header_indent"/>
-
 =head2 header_indent
 
 Section Headers are indented from the left margin by I<header_indent>
@@ -2246,8 +2200,6 @@ spaces.
 =item Mutability: Read-Write
 
 =back
-
-=for html <a name="ATTRIBUTES:maintainer"/>
 
 =head2 maintainer
 
@@ -2270,8 +2222,6 @@ string containing an email address and a telephone number works well.
 
 =back
 
-=for html <a name="ATTRIBUTES:numeric_errno"/>
-
 =head2 numeric_errno
 
 The I<numeric_errno> attribute contains the value of
@@ -2292,8 +2242,6 @@ value is obtained by evaluating B<$ERRNO> in a numeric context.
 
 =back
 
-=for html <a name="ATTRIBUTES:pod_filename"/>
-
 =head2 pod_filename
 
 The L<synopsis()|/METHODS:synopsis> method searches for POD in
@@ -2313,8 +2261,6 @@ I<pod_filename>.
 
 =back
 
-=for html <a name="ATTRIBUTES:proxy_filename"/>
-
 =head2 proxy_filename
 
 The filename containing the code that requested construction of the Proxy,
@@ -2333,8 +2279,6 @@ either by B<use()> or B<import()>.
 =item Mutability: Read-Only
 
 =back
-
-=for html <a name="ATTRIBUTES:proxy_name"/>
 
 =head2 proxy_name
 
@@ -2360,8 +2304,6 @@ a sub class allows you to change the default name.
 
 =back
 
-=for html <a name="ATTRIBUTES:proxy_package"/>
-
 =head2 proxy_package
 
 The I<proxy_package> attribute is derived from the package that requested
@@ -2380,8 +2322,6 @@ construction of the Proxy, either by calling B<use()> or B<import()>.
 =item Mutability: Read-Only
 
 =back
-
-=for html <a name="ATTRIBUTES:section_title"/>
 
 =head2 section_title
 
@@ -2404,8 +2344,6 @@ supplied, I<section_title> is used instead.
 
 =back
 
-=for html <a name="ATTRIBUTES:sections"/>
-
 =head2 sections
 
 The Section-creating methods L<filled()|/METHODS:filled>,
@@ -2427,8 +2365,6 @@ I<sections>.
 
 =back
 
-=for html <a name="ATTRIBUTES:string_errno"/>
-
 =head2 string_errno
 
 I<string_errno> is a read-only attribute that contains the value of Perl's
@@ -2448,8 +2384,6 @@ obtained by evaluating B<$ERRNO> in a string context.
 =item Mutability: Read-Only
 
 =back
-
-=for html <a name="ATTRIBUTES:tags"/>
 
 =head2 tags
 
@@ -2472,8 +2406,6 @@ B<Carp::Proxy> methods.
 
 =back
 
-=for html <a name="METHODS:"/>
-
 =head1 METHODS
 
 The documentation for each method starts off with a 'Usage' description.
@@ -2487,8 +2419,6 @@ B<E<lt>voidE<gt>>) attempts to convey the return value.  Arguments in
 angle-brackets are optional, with the ellipsis (B<...>) implying
 repeatability.  B<$cp> is a B<Carp::Proxy> object.  B<$class>, if used as
 the invoker, indicates a class method.
-
-=for html <a name="METHODS:add_context"/>
 
 =head2 add_context
 
@@ -2576,8 +2506,6 @@ functionality for ignoring stackframes that you may find useful.
 
 =back
 
-=for html <a name="METHODS:append_handler_package"/>
-
 =head2 append_handler_package
 
  Usage:
@@ -2586,8 +2514,6 @@ functionality for ignoring stackframes that you may find useful.
 The attribute L<handler_pkgs|/ATTRIBUTES:handler_pkgs> is an ArrayRef.
 B<append_handler_package()> is sugar to make adding packages to the end of
 L<handler_pkgs|/ATTRIBUTES:handler_pkgs> easier.
-
-=for html <a name="METHODS:append_section"/>
 
 =head2 append_section
 
@@ -2599,8 +2525,6 @@ child ArrayRefs, one for each Section (like filled(), fixed() etc.).
 B<append_section()> is sugar to make adding a Section request to the
 L<sections|/ATTRIBUTES:sections> attribute, easier.  Section requests are
 added to the end of L<sections|/ATTRIBUTES:sections> (appended).
-
-=for html <a name="METHODS:banner"/>
 
 =head2 banner
 
@@ -2623,8 +2547,6 @@ generated by invoking
 L<identifier_presentation()|/METHODS:identifier_presentation> on the
 L<handler_name|/ATTRIBUTES:handler_name> attribute.
 
-=for html <a name="METHODS:call"/>
-
 =head2 call
 
  Usage:
@@ -2645,8 +2567,6 @@ L<builtin|/BUILTIN-HANDLERS:> Handlers.
 
 B<call()> runs the algorithm described in L<HANDLER SEARCH|/HANDLER-SEARCH:>.
 
-=for html <a name="METHODS:contact_maintainer"/>
-
 =head2 contact_maintainer
 
  Usage:
@@ -2662,8 +2582,6 @@ info.
 
     *** Please contact the maintainer ***
       Your Name  your.name@help.org   (123)456-7890
-
-=for html <a name="METHODS:decipher_child_error"/>
 
 =head2 decipher_child_error
 
@@ -2685,8 +2603,6 @@ L<filled()|/METHODS:filled> Section.  Examples:
     *** Process terminated by signal ***
       The child process was terminated by SIGSEGV (signal 11).
 
-=for html <a name="METHODS:directory"/>
-
 =head2 directory
 
  Usage:
@@ -2697,8 +2613,6 @@ optional I<$title>, if supplied, forms the title for the Section,
 otherwise C<'Directory'> is used as the title.
 
 Output from B<Cwd::abs_path()> is used to form the body of the Section.
-
-=for html <a name="METHODS:errno_section"/>
 
 =head2 errno_section
 
@@ -2712,8 +2626,6 @@ not provided then 'System Diagnostic' is used as the Header title.
 No Section is created if the L<string_errno|/ATTRIBUTES:string_errno>
 attribute is empty.
 
-=for html <a name="METHODS:filename"/>
-
 =head2 filename
 
  Usage:
@@ -2724,8 +2636,6 @@ optional I<$title>, if supplied, forms the title for the Section,
 otherwise C<'Filename'> is used as the title.
 
 Output from B<Cwd::abs_path()> is used to form the body of the Section.
-
-=for html <a name="METHODS:filled"/>
 
 =head2 filled
 
@@ -2762,8 +2672,6 @@ L<body_indent|/ATTRIBUTES:body_indent> only come into play when
 L<render_message()|/METHODS:render_message> is run.
 
 See L<filled_section()|/METHODS:filled_section> for details.
-
-=for html <a name="METHODS:filled_section"/>
 
 =head2 filled_section
 
@@ -2806,8 +2714,6 @@ title, the paragraphs and a trailing blank line.
 Override B<filled_section()> in a sub-class, rather than
 L<filled()|/METHODS:filled>, if you want different filling behavior.
 
-=for html <a name="METHODS:fixed"/>
-
 =head2 fixed
 
  Usage:
@@ -2842,8 +2748,6 @@ L<render_message()|/METHODS:render_message> is run.
 
 See L<fixed_section()|/METHODS:fixed_section> for details.
 
-=for html <a name="METHODS:fixed_section"/>
-
 =head2 fixed_section
 
  Usage:
@@ -2869,8 +2773,6 @@ line.  Lines are joined with platform-appropriate line termination.
 
 Trailing whitespace is removed, the section-title is prepended and a
 single blank line is added to the end.
-
-=for html <a name="METHODS:header"/>
 
 =head2 header
 
@@ -2900,8 +2802,6 @@ L<fixed_section()|/METHODS:fixed_section>.
 
 Subclass B<Carp::Proxy> and override B<header()> for a different look.
 
-=for html <a name="METHODS:identifier_presentation"/>
-
 =head2 identifier_presentation
 
  Usage:
@@ -2922,8 +2822,6 @@ conversions:
 Sub-class B<Carp::Proxy> and override B<identifier_presentation()> if
 you want a different convention.
 
-=for html <a name="METHODS:list_handler_packages"/>
-
 =head2 list_handler_packages
 
  Usage:
@@ -2933,8 +2831,6 @@ B<list_handler_packages()> is sugar that dereferences the
 L<handler_pkgs|/ATTRIBUTES:handler_pkgs> attribute (an ArrayRef) and
 returns the contents.
 
-=for html <a name="METHODS:list_sections"/>
-
 =head2 list_sections
 
  Usage:
@@ -2943,9 +2839,6 @@ returns the contents.
 The L<sections|/ATTRIBUTES:sections> attribute is an ArrayRef.
 B<list_sections()> is sugar to return all the elements of
 L<sections|/ATTRIBUTES:sections>.
-
-
-=for html <a name="METHODS:new"/>
 
 =head2 new
 
@@ -2968,8 +2861,6 @@ useful if you using the object for your own purposes.  There are a large
 number of required attribute-value pairs.  Specification for any additional
 attributes is supported.  Builder methods are invoked for all unspecified
 attributes.
-
-=for html <a name="METHODS:perform_disposition"/>
 
 =head2 perform_disposition
 
@@ -3018,8 +2909,6 @@ is:
 
 =back
 
-=for html <a name="METHODS:prepend_handler_package"/>
-
 =head2 prepend_handler_package
 
  Usage:
@@ -3028,8 +2917,6 @@ is:
 The attribute L<handler_pkgs|/ATTRIBUTES:handler_pkgs> is an ArrayRef.
 B<prepend_handler_package()> is sugar to make adding packages to the front
 of L<handler_pkgs|/ATTRIBUTES:handler_pkgs> easier.
-
-=for html <a name="METHODS:prepend_section"/>
 
 =head2 prepend_section
 
@@ -3041,8 +2928,6 @@ child ArrayRefs, one for each Section (like filled(), fixed() etc.).
 B<prepend_section()> is sugar to make adding a Section request to the
 L<sections|/ATTRIBUTES:sections> attribute, easier.  Section requests are
 added to the front of L<sections|/ATTRIBUTES:sections> (prepended).
-
-=for html <a name="METHODS:raw"/>
 
 =head2 raw
 
@@ -3064,8 +2949,6 @@ L<render_message()|/METHODS:render_message> traverses B<sections>.
 
 See L<raw_section()|/METHODS:raw_section> for details.
 
-=for html <a name="METHODS:raw_section"/>
-
 =head2 raw_section
 
  Usage:
@@ -3077,8 +2960,6 @@ traverses the list in the L<sections|/ATTRIBUTES:sections> attribute.
 
 B<raw_section()> does nothing; the returned string is simply a copy of
 I<$content>.
-
-=for html <a name="METHODS:render_message"/>
 
 =head2 render_message
 
@@ -3136,8 +3017,6 @@ L<disposition|/ATTRIBUTES:disposition> setting of B<die>, our
 serialized object will be written out to STDERR, where it can be captured
 by a parent process and reconstituted.  The reconstituted object can
 be examined, or augmented with parental context and rethrown.
-
-=for html <a name="METHODS:synopsis"/>
 
 =head2 synopsis
 
@@ -3201,8 +3080,6 @@ The resulting diagnostic looks something like this:
 See L<'perldoc Pod::Usage'|Pod::Usage> and L<'perldoc
 Pod::Select'|Pod::Select> for details about using B<-verbose> and
 B<-sections>.
-
-=for html <a name="METHODS:usage"/>
 
 =head2 usage
 
@@ -3271,8 +3148,6 @@ The invoker-upward aspect of the search means that B<my_func()>, instead
 of calling B<fatal()> directly, could have called an arg-checking utility,
 which called another utility etc., which finally called B<fatal()>.  The
 search would have eventually located B<_usage_my_func()>.
-
-=for html <a name="HANDLER-SEARCH:"/>
 
 =head1 HANDLER SEARCH
 
@@ -3362,13 +3237,9 @@ its own:
 	cmdline called from line 216 of /usr/local/bin/hibs
 	main called from line 17 of /usr/local/bin/hibs
 
-=for html <a name="BUILTIN-HANDLERS:"/>
-
 =head1 BUILTIN HANDLERS
 
 These are handler subroutines that come with B<Carp::Proxy>.
-
-=for html <a name="BUILTIN-HANDLERS:*internal_error*"/>
 
 =head2 *internal_error*
 
@@ -3404,8 +3275,6 @@ L<contact_maintainer()|/METHODS:contact_maintainer> Section is also added.
 
       *** Stacktrace ***
         ...
-
-=for html <a name="BUILTIN-HANDLERS:*assertion_failure*"/>
 
 =head2 *assertion_failure*
 
@@ -3453,8 +3322,6 @@ does a great job of serializing complex data structures.
       *** Stacktrace ***
         ...
 
-=for html <a name="BUILTIN-HANDLERS:*configuration*"/>
-
 =head2 *configuration*
 
  Usage:
@@ -3488,8 +3355,6 @@ As alluded to above, we want our GUI program to use conventional STDERR
 based messages during initialization, but once the GUI is up we want
 future messages to go to a dialog widget.
 
-=for html <a name="BUGS-AND-LIMITATIONS:"/>
-
 =head1 BUGS AND LIMITATIONS
 
 Please report any bugs or feature requests to C<bug-carp-proxy at
@@ -3497,8 +3362,6 @@ rt.cpan.org>, or through the web interface at
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Carp-Proxy>.  I will be
 notified, and then you'll automatically be notified of progress on your
 bug as I make changes.
-
-=for html <a name="DEPENDENCIES:"/>
 
 =head1 DEPENDENCIES
 
@@ -3516,8 +3379,6 @@ External dependencies (install from CPAN)
  Readonly
  Sub::Name
  YAML::XS
-
-=for html <a name="SUPPORT:"/>
 
 =head1 SUPPORT
 
@@ -3549,8 +3410,6 @@ L<http://search.cpan.org/dist/Carp-Proxy/>
 =back
 
 
-=for html <a name="SEE-ALSO:"/>
-
 =head1 SEE ALSO
 
 =over 4
@@ -3581,8 +3440,6 @@ making a Do-it-yourself CodeRef for L<context|/ATTRIBUTES:context> then
 B<Carp>'s B<longmess()> or B<longmess_heavy()> may prove useful.
 
 =back
-
-=for html <a name="LICENSE-AND-COPYRIGHT:"/>
 
 =head1 LICENSE AND COPYRIGHT
 
