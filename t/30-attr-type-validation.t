@@ -136,16 +136,17 @@ my $invalid_context_rex =
 
           \s*                                               \r? \n
 
-          \Q            'none' No Section generated.\E      \r? \n
-          \Q            'die' Describe where Proxy was \E
-          \Qcalled.\E                                       \r? \n
-          \Q            'croak' Describe where Proxy's \E
-          \Qcaller was called.\E                            \r? \n
-          \Q            'confess' Stacktrace, starting \E
-          \Qwith Proxy call.\E                              \r? \n
-          \Q            'internals' Complete stacktrace \E
-          \Qwith Carp::Proxy guts.\E                        \r? \n
-          \Q            CodeRef Do it yourself.\E           \r? \n
+          \Q            'none' - No Section \E
+          \Qgenerated.\E                                    \r? \n
+          \Q            'die' - Describe where \E
+          \QProxy was called.\E                             \r? \n
+          \Q            'croak' - Describe where \E
+          \QProxy's caller was called.\E                    \r? \n
+          \Q            'confess' - Stacktrace, \E
+          \Qstarting with Proxy call.\E                     \r? \n
+          \Q            'internals' - Complete \E
+          \Qstacktrace with Carp::Proxy guts.\E             \r? \n
+          \Q            CodeRef - Do it yourself.\E   \r? \n
 
           \s*                                               \r? \n
 
@@ -183,13 +184,13 @@ my $invalid_disposition_rex =
 
           \s*                                               \r? \n
 
-          \Q            'return' No exception thrown; \E
-          \QProxy returns.\E                                \r? \n
-          \Q            'warn' Carp::Proxy object passed \E
-          \Qto Perl's warn().\E                             \r? \n
-          \Q            'die' Carp::Proxy object passed \E
-          \Qto Perl's die().\E                              \r? \n
-          \Q            CodeRef Do it yourself.\E           \r? \n
+          \Q            'return' - No exception \E
+          \Qthrown; Proxy returns.\E                        \r? \n
+          \Q            'warn' - Carp::Proxy object \E
+          \Qpassed to Perl's warn().\E                      \r? \n
+          \Q            'die' - Carp::Proxy object \E
+          \Qpassed to Perl's die().\E                       \r? \n
+          \Q            CodeRef - Do it yourself.\E      \r? \n
 
           \s*                                               \r? \n
 

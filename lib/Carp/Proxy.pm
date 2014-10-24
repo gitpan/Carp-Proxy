@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use 5.014;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Moose;
 
@@ -792,14 +792,18 @@ EOF
 sub _file_line_subr {
     my( $self, $caller_index ) = @_;
 
-    my( $file, $line, $subr ) =
-        (caller $caller_index)[
-                               _CALLER_FILENAME,
-                               _CALLER_LINE,
-                               _CALLER_SUBROUTINE,
-                              ];
+    my( $file, $line, $subr );
 
-    return ($file, $line, $subr);
+    eval{
+        ( $file, $line, $subr ) =
+            (caller 1 + $caller_index)[
+                                       _CALLER_FILENAME,
+                                       _CALLER_LINE,
+                                       _CALLER_SUBROUTINE,
+                                      ];
+    };
+
+    return $EVAL_ERROR ? () : ($file, $line, $subr);
 }
 
 sub _single_frame_context {
@@ -1284,10 +1288,17 @@ sub directory {
 sub _abs_path_section {
     my( $cp, $entry, $title ) = @_;
 
-    my $path = abs_path( $entry );
+    my $path;
+
+    #-----
+    # On *nix abs_path() appears to return undef if it has trouble.  On
+    # Windows it appears to throw.  Docs are ambiguous.
+    #-----
+    eval{ $path = abs_path( $entry ); };
 
     $path = $entry
-        if not defined $path;
+        if not( defined $path )
+        or $EVAL_ERROR;
 
     $cp->fixed( $path, $title );
 
@@ -1600,8 +1611,8 @@ All you need for most day-to-day work is the Proxy and two methods:
     fixed()   Pre-formatted message builder method.
 
 Use B<fatal()> wherever you currently use B<die()>.  Your Handler should
-compose the diagnostic message using the L<filled()|/METHODS:filled> and/or
-L<fixed()|/METHODS:fixed> methods.
+compose the diagnostic message using the L<filled()|/filled> and/or
+L<fixed()|/fixed> methods.
 
 =head1 SAMPLE OUTPUT
 
@@ -1721,7 +1732,7 @@ Here are some examples:
 
 The no-export form is desirable if you want the class definition for your
 own purposes, or if Proxy attributes need to be established at runtime.
-You can invoke B<import()>, at any time, to build Proxy subroutines.
+You can invoke L<import()|/import>, at any time, to build Proxy subroutines.
 
     use Carp::Proxy ();
     ...
@@ -1732,7 +1743,7 @@ You can invoke B<import()>, at any time, to build Proxy subroutines.
  Usage:
     <proxy> $handler, @optional_arguments;
 
-The default L<proxy_name|/ATTRIBUTES:proxy_name> is C<fatal> so the typical
+The default L<proxy_name|/proxy_name> is C<fatal> so the typical
 usage looks more like
 
     fatal $handler, @optional_arguments;
@@ -1754,13 +1765,13 @@ I<$handler>.
 =item B<2 - Create a Carp::Proxy object>
 
 The Proxy supplies settings for all the object's required attributes,
-see L<ATTRIBUTES|/ATTRIBUTES:>.  The Proxy also
+see L<ATTRIBUTES|/ATTRIBUTES>.  The Proxy also
 forwards initializations for any attributes supplied by the user (arguments
-to B<use()> or B<import()>).
+to B<use()> or L<import()|/import>).
 
 =item B<3 - Call begin_hook>
 
-The L<begin_hook|/ATTRIBUTES:begin_hook> attribute, if it exists, is
+The L<begin_hook|/begin_hook> attribute, if it exists, is
 called, passing the object as the only argument.
 
 =item B<4 - Locate the Handler>
@@ -1769,7 +1780,7 @@ Locating the Handler is a complex process; see
 L<HANDLER SEARCH|/HANDLER-SEARCH:>.  Briefly, the default behavior is to use
 the first subroutine it finds from the following list of templates.  The
 list is evaluated once for each package in the
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> attribute.
+L<handler_pkgs|/handler_pkgs> attribute.
 
     <package>::_cp_<handler_name>
     <package>::_<handler_name>
@@ -1783,25 +1794,25 @@ additional arguments to the Handler.
 
 =item B<6 - Add Calling Context (Stacktrace)>
 
-The method L<add_context()|/METHODS:add_context> is invoked to generate a
+The method L<add_context()|/add_context> is invoked to generate a
 Section with stacktrace content, as dictated by the
-L<context|/ATTRIBUTES:context> attribute.
+L<context|/context> attribute.
 
 =item B<7 - Call end_hook>
 
-The L<end_hook|/ATTRIBUTES:end_hook> attribute, if it exists, is called,
+The L<end_hook|/end_hook> attribute, if it exists, is called,
 passing the object as the only argument.
 
 =item B<8 - Perform Disposition>
 
-The method L<perform_disposition()|/METHODS:perform_disposition> is
+The method L<perform_disposition()|/perform_disposition> is
 invoked.  Disposition is controlled by the
-L<disposition|/ATTRIBUTES:disposition> attribute; typically this means
+L<disposition|/disposition> attribute; typically this means
 passing the B<Carp::Proxy> object to B<die()>.
 
 =back
 
-If L<perform_disposition()|/METHODS:perform_disposition> returns, rather
+If L<perform_disposition()|/perform_disposition> returns, rather
 than throwing, then the returned value is propagated as the return value
 of the Proxy.
 
@@ -1813,15 +1824,15 @@ attribute's value.  Mutable (Read-Write) attributes have accessors that can
 be supplied with an argument to set the attribute's value.
 
 Users generally do not create B<Carp::Proxy> objects directly; the Proxy
-does that for them.  The object constructor, L<new()|/METHODS:new>, requires
+does that for them.  The object constructor, L<new()|/new>, requires
 specification for several of the attributes like
-L<eval_error|/ATTRIBUTES:eval_error>.  The Proxy supplies these required
-attributes, but arguments to B<use()> or B<import()> can override them.
+L<eval_error|/eval_error>.  The Proxy supplies these required
+attributes, but arguments to B<use()> or L<import()|/import> can override them.
 
 All other attributes invoke a "builder" method to initialize the
 attribute value if one is not provided.  Builder
 methods are named with a prefix of B<'_build_'>.  You can change default
-values for these attributes with arguments to B<use()> / B<import()>,
+values for these attributes with arguments to B<use()> / L<import()|/import>,
 or by providing custom builder functions in a sub-class.
 
 =head2 arg
@@ -1832,7 +1843,7 @@ B<Try::Tiny>.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<arg> specification.
+=item Builder:    None; L<new()|/new> requires I<arg> specification.
 
 =item Default:    N/A
 
@@ -1848,7 +1859,7 @@ B<Try::Tiny>.
 
 The I<as_yaml> attribute is a flag that controls message rendering.
 When False, message text is derived from the
-L<sections|/ATTRIBUTES:sections> attribute; this is the normal mode of
+L<sections|/sections> attribute; this is the normal mode of
 operation.
 
 When I<as_yaml> is True message text is a B<YAML::Dump()> of the
@@ -1863,7 +1874,7 @@ propagate exceptions up from child processes.
 
 =item Domain:     Boolean
 
-=item Affects:    L<render_message()|/METHODS:render_message>
+=item Affects:    L<render_message()|/render_message>
 
 =item Mutability: Read-Write
 
@@ -1889,7 +1900,7 @@ first word(s) in the Banner.
 
 =item Domain:     String
 
-=item Affects:    L<banner_title()|/METHODS:banner_title>
+=item Affects:    L<banner()|/banner>
 
 =item Mutability: Read-Write
 
@@ -1921,9 +1932,9 @@ every exception - before any Handler gets control.
 =head2 body_indent
 
 I<body_indent> influences the presentation of paragraphs created
-by the Section creating methods L<filled()|/METHODS:filled> and
-L<fixed()|/METHODS:fixed>.  Use I<body_indent> to determine the amount of
-additional indentation, beyond L<header_indent|/ATTRIBUTES:header_indent>,
+by the Section creating methods L<filled()|/filled> and
+L<fixed()|/fixed>.  Use I<body_indent> to determine the amount of
+additional indentation, beyond L<header_indent|/header_indent>,
 that is applied to Section paragraphs.
 
 =over 4
@@ -1934,7 +1945,7 @@ that is applied to Section paragraphs.
 
 =item Domain:     Non-negative integers
 
-=item Affects:    L<filled_section()|/METHODS:filled_section> and L<fixed_section()|/METHODS:fixed_section>
+=item Affects:    L<filled_section()|/filled_section> and L<fixed_section()|/fixed_section>
 
 =item Mutability: Read-Write
 
@@ -1947,13 +1958,13 @@ from the invoking environment.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<child_error> specification.
+=item Builder:    None; L<new()|/new> requires I<child_error> specification.
 
 =item Default:    N/A
 
 =item Domain:     Any
 
-=item Affects:    L<decipher_child_error()|/METHODS:decipher_child_error>
+=item Affects:    L<decipher_child_error()|/decipher_child_error>
 
 =item Mutability: Read-Only
 
@@ -1972,7 +1983,7 @@ for any filled Sections.  Values below about 30 are not practical.
 
 =item Domain:     Positive Integers
 
-=item Affects:    L<banner()|/METHODS:banner> and L<filled_section()|/METHODS:filled_section>
+=item Affects:    L<banner()|/banner> and L<filled_section()|/filled_section>
 
 =item Mutability: Read-Write
 
@@ -1992,21 +2003,21 @@ The I<context> attribute controls the generation of a stacktrace Section.
 
 =over 4
 
-=item 'none'         No Section generated.
+=item 'none' - No Section generated.
 
-=item 'die'          Describe where Proxy was called.
+=item 'die' - Describe where Proxy was called.
 
-=item 'croak'        Describe where Proxy's caller was called.
+=item 'croak' - Describe where Proxy's caller was called.
 
-=item 'confess'      Stacktrace, starting with Proxy call.
+=item 'confess' - Stacktrace, starting with Proxy call.
 
-=item 'internals'    Complete stacktrace with Carp::Proxy guts.
+=item 'internals' - Complete stacktrace with Carp::Proxy guts.
 
-=item CodeRef        Do it yourself.
+=item CodeRef - Do it yourself.
 
 =back
 
-=item Affects:    L<add_context()|/METHODS:add_context>
+=item Affects:    L<add_context()|/add_context>
 
 =item Mutability: Read-Write
 
@@ -2026,17 +2037,17 @@ The I<disposition> attribute controls how the exception is thrown.
 
 =over 4
 
-=item 'return'       No exception thrown; Proxy returns.
+=item 'return' - No exception thrown; Proxy returns.
 
-=item 'warn'         Carp::Proxy object passed to Perl's B<warn()>.
+=item 'warn' - Carp::Proxy object passed to Perl's B<warn()>.
 
-=item 'die'          Carp::Proxy object passed to Perl's B<die()>.
+=item 'die' - Carp::Proxy object passed to Perl's B<die()>.
 
-=item CodeRef        Do it yourself.
+=item CodeRef - Do it yourself.
 
 =back
 
-=item Affects:    L<perform_disposition()|/METHODS:perform_disposition>
+=item Affects:    L<perform_disposition()|/perform_disposition>
 
 =item Mutability: Read-Write
 
@@ -2072,7 +2083,7 @@ as harvested from the invoking environment.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires an I<eval_error> specification
+=item Builder:    None; L<new()|/new> requires an I<eval_error> specification
 
 =item Default:    N/A
 
@@ -2097,7 +2108,7 @@ when a process dies.
 
 =item Domain:     Integers greater than Zero
 
-=item Affects:    L<perform_disposition()|/METHODS:perform_disposition>
+=item Affects:    L<perform_disposition()|/perform_disposition>
 
 =item Mutability: Read-Write
 
@@ -2111,13 +2122,13 @@ a Handler wants to know the parental Proxy.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<fq_proxy_name> specification
+=item Builder:    None; L<new()|/new> requires I<fq_proxy_name> specification
 
 =item Default:    N/A
 
 =item Domain:     String
 
-=item Affects:    L<add_context()|/METHODS:add_context>
+=item Affects:    L<add_context()|/add_context>
 
 =item Mutability: Read-Write
 
@@ -2129,13 +2140,13 @@ The Proxy saves its first argument, the Handler, in I<handler_name>.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<handler_name> specification
+=item Builder:    None; L<new()|/new> requires I<handler_name> specification
 
 =item Default:    N/A
 
 =item Domain:     String
 
-=item Affects:    L<banner()|/METHODS:banner>, L<HANDLER SEARCH|/HANDLER-SEARCH:>
+=item Affects:    L<banner()|/banner>, L<HANDLER SEARCH|/HANDLER-SEARCH:>
 
 =item Mutability: Read-Write
 
@@ -2145,7 +2156,7 @@ The Proxy saves its first argument, the Handler, in I<handler_name>.
 
 The search for a Handler subroutine is performed in each of the packages
 in the ArrayRef I<handler_pkgs>.  A copy of
-L<proxy_package|/ATTRIBUTES:proxy_package> is automatically appended, by
+L<proxy_package|/proxy_package> is automatically appended, by
 the Proxy after object construction.
 
 =over 4
@@ -2195,7 +2206,7 @@ spaces.
 
 =item Domain:     Non-negative Integers
 
-=item Affects:    L<header()|/METHODS:header>, L<filled_section()|/METHODS:filled_section> L<fixed_section()|/METHODS:fixed_section>
+=item Affects:    L<header()|/header>, L<filled_section()|/filled_section> L<fixed_section()|/fixed_section>
 
 =item Mutability: Read-Write
 
@@ -2203,7 +2214,7 @@ spaces.
 
 =head2 maintainer
 
-The L<contact_maintainer()|/METHODS:contact_maintainer> method produces a
+The L<contact_maintainer()|/contact_maintainer> method produces a
 Section that urges the message recipient to contact the maintainer.  The
 Section is created only if the I<maintainer> attribute is non-empty.  A
 string containing an email address and a telephone number works well.
@@ -2216,7 +2227,7 @@ string containing an email address and a telephone number works well.
 
 =item Domain:     String
 
-=item Affects:    L<contact_maintainer()|/METHODS:contact_maintainer>
+=item Affects:    L<contact_maintainer()|/contact_maintainer>
 
 =item Mutability: Read-Write
 
@@ -2230,7 +2241,7 @@ value is obtained by evaluating B<$ERRNO> in a numeric context.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<numeric_errno> specification
+=item Builder:    None; L<new()|/new> requires I<numeric_errno> specification
 
 =item Default:    N/A
 
@@ -2244,18 +2255,18 @@ value is obtained by evaluating B<$ERRNO> in a numeric context.
 
 =head2 pod_filename
 
-The L<synopsis()|/METHODS:synopsis> method searches for POD in
+The L<synopsis()|/synopsis> method searches for POD in
 I<pod_filename>.
 
 =over 4
 
 =item Builder:    _build_pod_filename()
 
-=item Default:    L<proxy_filename|/ATTRIBUTES:proxy_filename>.
+=item Default:    L<proxy_filename|/proxy_filename>.
 
 =item Domain:     String
 
-=item Affects:    L<synopsis()|/METHODS:synopsis>
+=item Affects:    L<synopsis()|/synopsis>
 
 =item Mutability: Read-Write
 
@@ -2264,17 +2275,17 @@ I<pod_filename>.
 =head2 proxy_filename
 
 The filename containing the code that requested construction of the Proxy,
-either by B<use()> or B<import()>.
+either by B<use()> or L<import()|/import>.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<proxy_filename> specification
+=item Builder:    None; L<new()|/new> requires I<proxy_filename> specification
 
 =item Default:    N/A
 
 =item Domain:     String
 
-=item Affects:    L<pod_filename|/ATTRIBUTES:pod_filename>.
+=item Affects:    L<pod_filename|/pod_filename>.
 
 =item Mutability: Read-Only
 
@@ -2286,19 +2297,19 @@ I<proxy_name> contains the name of the Proxy subroutine.
 
 The default I<proxy_name> is B<'fatal'>.
 
-The only time this attribute is used is when B<use()> or B<import()>
+The only time this attribute is used is when B<use()> or L<import()|/import>
 are called without arguments.  Defining a B<_build_proxy_name()> in
 a sub class allows you to change the default name.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<proxy_name> specification
+=item Builder:    None; L<new()|/new> requires I<proxy_name> specification
 
 =item Default:    'fatal'
 
 =item Domain:     String
 
-=item Affects:    B<use()>, L<import()|/METHODS:import>
+=item Affects:    B<use()>, L<import()|/import>
 
 =item Mutability: Read-Only
 
@@ -2307,17 +2318,17 @@ a sub class allows you to change the default name.
 =head2 proxy_package
 
 The I<proxy_package> attribute is derived from the package that requested
-construction of the Proxy, either by calling B<use()> or B<import()>.
+construction of the Proxy, either by calling B<use()> or L<import()|/import>.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<proxy_package> specification
+=item Builder:    None; L<new()|/new> requires I<proxy_package> specification
 
-=item Default:    Package of whatever subroutine called B<use()> or L<import()|/METHODS:import>
+=item Default:    Package of whatever subroutine called B<use()> or L<import()|/import>
 
 =item Domain:     String
 
-=item Affects:    L<handler_pkgs|/ATTRIBUTES:handler_pkgs>
+=item Affects:    L<handler_pkgs|/handler_pkgs>
 
 =item Mutability: Read-Only
 
@@ -2325,8 +2336,8 @@ construction of the Proxy, either by calling B<use()> or B<import()>.
 
 =head2 section_title
 
-The Section-creating methods L<filled()|/METHODS:filled> and
-L<fixed()|/METHODS:fixed>, accept an optional, second argument to be used
+The Section-creating methods L<filled()|/filled> and
+L<fixed()|/fixed>, accept an optional, second argument to be used
 as the title for the Section.  When this optional argument is not
 supplied, I<section_title> is used instead.
 
@@ -2338,7 +2349,7 @@ supplied, I<section_title> is used instead.
 
 =item Domain:     Non-empty String
 
-=item Affects:    L<header()|/METHODS:header>, L<filled()|/METHODS:filled>, L<fixed()|/METHODS:fixed>
+=item Affects:    L<header()|/header>, L<filled()|/filled>, L<fixed()|/fixed>
 
 =item Mutability: Read-Write
 
@@ -2346,8 +2357,8 @@ supplied, I<section_title> is used instead.
 
 =head2 sections
 
-The Section-creating methods L<filled()|/METHODS:filled>,
-L<fixed()|/METHODS:fixed> and L<raw()|/METHODS:raw> create Section
+The Section-creating methods L<filled()|/filled>,
+L<fixed()|/fixed> and L<raw()|/raw> create Section
 specifications. Section specifications accumulate in the ArrayRef
 I<sections>.
 
@@ -2359,7 +2370,7 @@ I<sections>.
 
 =item Domain:     ArrayRef of section-specifications
 
-=item Affects:    L<render_message()|/METHODS:render_message>
+=item Affects:    L<render_message()|/render_message>
 
 =item Mutability: Read-Write
 
@@ -2373,13 +2384,13 @@ obtained by evaluating B<$ERRNO> in a string context.
 
 =over 4
 
-=item Builder:    None; L<new()|/METHODS:new> requires I<string_errno> specification
+=item Builder:    None; L<new()|/new> requires I<string_errno> specification
 
 =item Default:    N/A
 
 =item Domain:     String
 
-=item Affects:    L<errno_section()|/METHODS:errno_section>
+=item Affects:    L<errno_section()|/errno_section>
 
 =item Mutability: Read-Only
 
@@ -2426,7 +2437,7 @@ the invoker, indicates a class method.
     <void> $cp->add_context();
 
 B<add_context()> creates a Section that contains a stacktrace of where the
-Proxy was invoked.  The L<context|/ATTRIBUTES:context> attribute controls
+Proxy was invoked.  The L<context|/context> attribute controls
 whether or not the Section is generated, as well as what kind of
 stacktrace is produced.
 
@@ -2434,11 +2445,11 @@ B<add_context()> is called by the Proxy when the Handler returns.
 
 Perl's B<caller()> is used to probe the callstack and report stackframes.
 Stackframes are rendered on one line if the length would not exceed the
-value of the L<columns|/ATTRIBUTES:columns> attribute.  Long lines are
+value of the L<columns|/columns> attribute.  Long lines are
 folded at the filename portion of the stackframe and given
-L<body_indent|/ATTRIBUTES:body_indent> extra spaces of indentation.
+L<body_indent|/body_indent> extra spaces of indentation.
 
-The L<context|/ATTRIBUTES:context> attribute may take on any of these
+The L<context|/context> attribute may take on any of these
 values:
 
 =over 4
@@ -2498,8 +2509,8 @@ By providing a CodeRef users can completely control context reporting.
 
 The Proxy will make a callback to I<CodeRef> immediately after the Handler
 returns.  The B<Carp::Proxy> object will be passed as the only argument.
-The CodeRef should create a Section using the L<filled()|/METHODS:filled>,
-L<fixed()|/METHODS:fixed> or L<raw()|/METHODS:raw> methods.
+The CodeRef should create a Section using the L<filled()|/filled>,
+L<fixed()|/fixed> or L<raw()|/raw> methods.
 
 The B<Carp> module from the Perl standard library provides some complex
 functionality for ignoring stackframes that you may find useful.
@@ -2511,20 +2522,20 @@ functionality for ignoring stackframes that you may find useful.
  Usage:
     <void> $cp->append_handler_package( $pkg <, $pkg2 ...>);
 
-The attribute L<handler_pkgs|/ATTRIBUTES:handler_pkgs> is an ArrayRef.
+The attribute L<handler_pkgs|/handler_pkgs> is an ArrayRef.
 B<append_handler_package()> is sugar to make adding packages to the end of
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> easier.
+L<handler_pkgs|/handler_pkgs> easier.
 
 =head2 append_section
 
  Usage:
     <void> $cp->append_section( $array_ref <, $array_ref2...>);
 
-The L<sections|/ATTRIBUTES:sections> attribute is an ArrayRef containing
+The L<sections|/sections> attribute is an ArrayRef containing
 child ArrayRefs, one for each Section (like filled(), fixed() etc.).
 B<append_section()> is sugar to make adding a Section request to the
-L<sections|/ATTRIBUTES:sections> attribute, easier.  Section requests are
-added to the end of L<sections|/ATTRIBUTES:sections> (appended).
+L<sections|/sections> attribute, easier.  Section requests are
+added to the end of L<sections|/sections> (appended).
 
 =head2 banner
 
@@ -2534,7 +2545,7 @@ added to the end of L<sections|/ATTRIBUTES:sections> (appended).
 B<banner()> produces the multi-line introduction to a diagnostic message.
 The Banner is intended to stand out visually so it fills up the horizontal
 space from left to right margins.  The value of
-L<columns|/ATTRIBUTES:columns> dictates the amount of fill needed.  The
+L<columns|/columns> dictates the amount of fill needed.  The
 Banner looks something like this:
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2542,10 +2553,10 @@ Banner looks something like this:
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In the above template, I<banner_title> is taken directly from the
-L<banner_title|/ATTRIBUTES:banner_title> attribute.  I<cleansed_handler> is
+L<banner_title|/banner_title> attribute.  I<cleansed_handler> is
 generated by invoking
-L<identifier_presentation()|/METHODS:identifier_presentation> on the
-L<handler_name|/ATTRIBUTES:handler_name> attribute.
+L<identifier_presentation()|/identifier_presentation> on the
+L<handler_name|/handler_name> attribute.
 
 =head2 call
 
@@ -2572,12 +2583,12 @@ B<call()> runs the algorithm described in L<HANDLER SEARCH|/HANDLER-SEARCH:>.
  Usage:
     <void> $cp->contact_maintainer();
 
-If the L<maintainer|/ATTRIBUTES:maintainer> attribute is non-empty then a
-Section containing the L<maintainer|/ATTRIBUTES:maintainer> string is
-created.  No Section is created if L<maintainer|/ATTRIBUTES:maintainer> is
+If the L<maintainer|/maintainer> attribute is non-empty then a
+Section containing the L<maintainer|/maintainer> string is
+created.  No Section is created if L<maintainer|/maintainer> is
 empty.
 
-This works well if L<maintainer|/ATTRIBUTES:maintainer> contains contact
+This works well if L<maintainer|/maintainer> contains contact
 info.
 
     *** Please contact the maintainer ***
@@ -2592,7 +2603,7 @@ Perl's B<$CHILD_ERROR> (B<$?>) encodes several bits of information about
 how a child process terminates, see the B<perlvar> documentation on
 B<$CHILD_ERROR> for details.  B<decipher_child_error()> unpacks the
 various bits of information in B<$CHILD_ERROR> and converts them into a
-L<filled()|/METHODS:filled> Section.  Examples:
+L<filled()|/filled> Section.  Examples:
 
     *** Process Succeeded ***
       The child process completed normally (exit code 0).
@@ -2608,7 +2619,7 @@ L<filled()|/METHODS:filled> Section.  Examples:
  Usage:
     <void> $cp->directory( $dir <, $title >);
 
-The B<directory()> method creates a L<fixed()|/METHODS:fixed> Section.  The
+The B<directory()> method creates a L<fixed()|/fixed> Section.  The
 optional I<$title>, if supplied, forms the title for the Section,
 otherwise C<'Directory'> is used as the title.
 
@@ -2620,10 +2631,10 @@ Output from B<Cwd::abs_path()> is used to form the body of the Section.
     <void> $cp->errno_section( <$title> );
 
 A filled Section is created using the contents of the
-L<string_errno|/ATTRIBUTES:string_errno> attribute.  If I<$title> is
+L<string_errno|/string_errno> attribute.  If I<$title> is
 not provided then 'System Diagnostic' is used as the Header title.
 
-No Section is created if the L<string_errno|/ATTRIBUTES:string_errno>
+No Section is created if the L<string_errno|/string_errno>
 attribute is empty.
 
 =head2 filename
@@ -2631,7 +2642,7 @@ attribute is empty.
  Usage:
     <void> $cp->filename( $file <, $title >);
 
-The B<filename()> method creates a L<fixed()|/METHODS:fixed> Section.  The
+The B<filename()> method creates a L<fixed()|/fixed> Section.  The
 optional I<$title>, if supplied, forms the title for the Section,
 otherwise C<'Filename'> is used as the title.
 
@@ -2642,7 +2653,7 @@ Output from B<Cwd::abs_path()> is used to form the body of the Section.
  Usage:
     <void> $cp->filled( $content <, $title >);
 
-B<filled()> and L<fixed()|/METHODS:fixed> are the workhorse methods for
+B<filled()> and L<fixed()|/fixed> are the workhorse methods for
 composing diagnostic messages.
 
 In effect, B<filled()> creates a Section, consisting of paragraphs
@@ -2650,7 +2661,7 @@ introduced with a *** Header *** line containing I<$title>.  If I<$title>
 is the empty string then no Header is included.  This makes it easy to
 chain together Fixed and Filled Sections under the same Header.  If
 I<$title> is not supplied, or undef, then the
-L<section_title|/ATTRIBUTES:section_title> attribute is used in its place.
+L<section_title|/section_title> attribute is used in its place.
 
 Any spaces at the beginning of each paragraph in I<$content> sets the
 relative indentation for the whole paragraph.  Each paragraph may have
@@ -2658,20 +2669,20 @@ different indentations.
 
 Paragraphs are reformatted by splitting them into words, on whitespace,
 then building up new lines by filling with words to achieve a target line
-width.  The target width is given by the L<columns|/ATTRIBUTES:columns>
+width.  The target width is given by the L<columns|/columns>
 attribute.
 
 In actuality, all the B<filled()> method does is to add a request for a
 "filled_section" onto the end of the B<sections> list.  The actual
-processing is performed by L<filled_section()|/METHODS:filled_section> when
-L<render_message()|/METHODS:render_message> traverses the B<sections> list.
+processing is performed by L<filled_section()|/filled_section> when
+L<render_message()|/render_message> traverses the B<sections> list.
 What this means is that the settings for attributes like
-L<section_title|/ATTRIBUTES:section_title>, L<columns|/ATTRIBUTES:columns>,
-L<header_indent|/ATTRIBUTES:header_indent> and
-L<body_indent|/ATTRIBUTES:body_indent> only come into play when
-L<render_message()|/METHODS:render_message> is run.
+L<section_title|/section_title>, L<columns|/columns>,
+L<header_indent|/header_indent> and
+L<body_indent|/body_indent> only come into play when
+L<render_message()|/render_message> is run.
 
-See L<filled_section()|/METHODS:filled_section> for details.
+See L<filled_section()|/filled_section> for details.
 
 =head2 filled_section
 
@@ -2679,15 +2690,15 @@ See L<filled_section()|/METHODS:filled_section> for details.
     <String> $cp->filled_section( $content, $title );
 
 B<filled_section()> is not usually invoked directly by users.
-L<render_message()|/METHODS:render_message> invokes B<filled_section()> as
-it traverses the list held in the L<sections|/ATTRIBUTES:sections>
+L<render_message()|/render_message> invokes B<filled_section()> as
+it traverses the list held in the L<sections|/sections>
 attribute.
 
 I<$content> is expected to be a string.  If I<$content> is an empty string
 then no Section is produced - an empty string is returned.
 
 I<$title> is converted into a section-title using
-L<header()|/METHODS:header>.
+L<header()|/header>.
 
 I<$content> is split into paragraphs wherever there are two or more
 consecutive newlines, more specifically using this regex:
@@ -2701,25 +2712,25 @@ for the paragraph.
 
 New paragraphs are formed a line at a time by starting with an indentation
 amount corresponding to the sum of
-L<header_indent|/ATTRIBUTES:header_indent>,
-L<body_indent|/ATTRIBUTES:body_indent> and any supplemental indentation.
+L<header_indent|/header_indent>,
+L<body_indent|/body_indent> and any supplemental indentation.
 Words from the old paragraph are added to the line so long as the line
-length does not exceed L<columns|/ATTRIBUTES:columns>.  At least one word
-is always added, even if L<columns|/ATTRIBUTES:columns> is exceeded.
+length does not exceed L<columns|/columns>.  At least one word
+is always added, even if L<columns|/columns> is exceeded.
 
 Any trailing whitespace is removed.  Output paragraphs are joined with a
 blank line.  The returned string is the concatenation of the section
 title, the paragraphs and a trailing blank line.
 
 Override B<filled_section()> in a sub-class, rather than
-L<filled()|/METHODS:filled>, if you want different filling behavior.
+L<filled()|/filled>, if you want different filling behavior.
 
 =head2 fixed
 
  Usage:
     <void> $cp->fixed( $content <, $title >);
 
-B<fixed()> and L<filled()|/METHODS:filled> are the workhorse methods for
+B<fixed()> and L<filled()|/filled> are the workhorse methods for
 composing diagnostic messages.
 
 In effect, B<fixed()> creates a Section, consisting of paragraphs
@@ -2727,26 +2738,26 @@ introduced with a *** Header *** line containing I<$title>.  If I<$title>
 is the empty string then no Header is included.  This makes it easy to
 chain together Fixed and Filled Sections under the same Header.  If
 I<$title> is not supplied, or undef, then the
-L<section_title|/ATTRIBUTES:section_title> attribute is used in its place.
+L<section_title|/section_title> attribute is used in its place.
 
 Each line in I<$content> is indented by a constant amount corresponding to
-L<header_indent|/ATTRIBUTES:header_indent> +
-L<body_indent|/ATTRIBUTES:body_indent>.  Tabs are folded into spaces to
+L<header_indent|/header_indent> +
+L<body_indent|/body_indent>.  Tabs are folded into spaces to
 preserve column alignment before the indentation is prepended.  Trailing
 whitespace on each line is replaced with an appropriate line terminator
 for the platform. I<$content> is otherwise unmolested.  Almost WYSIWYG.
 
 In actuality, all the B<fixed()> method does is to add a request for a
 "fixed_section" onto the end of the B<sections> list.  The actual
-processing is performed by the L<fixed_section()|/METHODS:fixed_section>
-method when the L<render_message()|/METHODS:render_message> method
+processing is performed by the L<fixed_section()|/fixed_section>
+method when the L<render_message()|/render_message> method
 traverses the B<sections> list.  What this means is that the settings for
-attributes like L<section_title|/ATTRIBUTES:section_title>,
-L<header_indent|/ATTRIBUTES:header_indent> and
-L<body_indent|/ATTRIBUTES:body_indent> only matter at the time
-L<render_message()|/METHODS:render_message> is run.
+attributes like L<section_title|/section_title>,
+L<header_indent|/header_indent> and
+L<body_indent|/body_indent> only matter at the time
+L<render_message()|/render_message> is run.
 
-See L<fixed_section()|/METHODS:fixed_section> for details.
+See L<fixed_section()|/fixed_section> for details.
 
 =head2 fixed_section
 
@@ -2754,21 +2765,21 @@ See L<fixed_section()|/METHODS:fixed_section> for details.
     <String> $cp->fixed_section( $content, $title );
 
 B<fixed_section()> is not usually invoked directly by users.
-L<render_message()|/METHODS:render_message> invokes B<fixed_section()> as
-it traverses the list in the L<sections|/ATTRIBUTES:sections> attribute.
+L<render_message()|/render_message> invokes B<fixed_section()> as
+it traverses the list in the L<sections|/sections> attribute.
 
 I<$content> is expected to be a string.  If I<$content> is the empty
 string then no Section is generated and an empty string is returned.
 
 I<$title> is converted into a Section title string using
-L<header()|/METHODS:header>.
+L<header()|/header>.
 
 I<$content> is split into lines on newline ("\n") characters for
 processing.  Trailing whitespace is removed.  Embedded tabs are converted
 to the equivalent number of spaces assuming eight character boundarys.
 Indentation corresponding to the sum of
-L<header_indent|/ATTRIBUTES:header_indent> and
-L<body_indent|/ATTRIBUTES:body_indent> is added to the beginning of each
+L<header_indent|/header_indent> and
+L<body_indent|/body_indent> is added to the beginning of each
 line.  Lines are joined with platform-appropriate line termination.
 
 Trailing whitespace is removed, the section-title is prepended and a
@@ -2781,7 +2792,7 @@ single blank line is added to the end.
 
 B<header()> produces an introductory line for a Section of paragraphs.
 The line is indented from the left margin by
-L<header_indent|/ATTRIBUTES:header_indent> spaces.  The line is formed
+L<header_indent|/header_indent> spaces.  The line is formed
 using the following template:
 
     <indent>*** <$title> ***
@@ -2791,14 +2802,14 @@ The intent is to provide an introductory heading for Section paragraphs.
     *** Description ***
       The database server is refusing connections.
 
-If I<$title> is undef then the L<section_title|/ATTRIBUTES:section_title>
+If I<$title> is undef then the L<section_title|/section_title>
 attribute is used in its place.  Passing an empty string (C<''>) for
 I<title> causes B<header()> to omit Header generation.  In this case an
 empty string is returned.
 
 B<header()> is called by the Section creating methods
-L<filled_section()|/METHODS:filled_section> and
-L<fixed_section()|/METHODS:fixed_section>.
+L<filled_section()|/filled_section> and
+L<fixed_section()|/fixed_section>.
 
 Subclass B<Carp::Proxy> and override B<header()> for a different look.
 
@@ -2808,7 +2819,7 @@ Subclass B<Carp::Proxy> and override B<header()> for a different look.
     <String> $class->identifier_presentation( $name );
 
 The Banner reads better when words in the
-L<handler_name|/ATTRIBUTES:handler_name> are separated by spaces rather
+L<handler_name|/handler_name> are separated by spaces rather
 than underscores (C<_>).  Likewise with camelCasedIdentifiers.
 
 Underscores are replaced by single spaces everywhere they occur.  Spaces
@@ -2822,13 +2833,44 @@ conversions:
 Sub-class B<Carp::Proxy> and override B<identifier_presentation()> if
 you want a different convention.
 
+=head2 import
+
+ Usage:
+    <void> $class->import( <%attrs_by_proxy>);
+
+B<import()> accepts specifications for Proxy construction.  Specifications
+take the form of a proxyname and a hashref of attribute initializations.
+
+    proxyname1 => {
+                   attributeA => initial_valueA,
+                   attributeB => initial_valueB,
+                   ...
+                  }
+
+Any number of proxyname, hashref pairs may be specified; a proxy subroutine
+will be constructed for each pair.
+
+If there is only one argument it is taken to be a proxyname introducing an
+empty hashref.  If there are no arguments then it is assumed that the
+default for the L<proxy_name|/proxy_name> attribute (C<'fatal'>), should be
+used for the proxyname and an empty hashref used for the attribute
+initializations.
+
+B<import()> probes the callstack to determine the package and filename of
+the user code that called B<import()>.  B<import()> uses these values to create
+a hash containing the attributes L<proxy_filename|/proxy_filename>,
+L<proxy_name|/proxy_name> L<proxy_package|/proxy_package> and
+L<fq_proxy_name|/fq_proxy_name>.  Any supplied attributes are added to the
+hash.  The builtin handler L<*configuration*|/configuration> returns a
+reference to this hash.
+
 =head2 list_handler_packages
 
  Usage:
     <list> $cp->list_handler_packages();
 
 B<list_handler_packages()> is sugar that dereferences the
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> attribute (an ArrayRef) and
+L<handler_pkgs|/handler_pkgs> attribute (an ArrayRef) and
 returns the contents.
 
 =head2 list_sections
@@ -2836,9 +2878,9 @@ returns the contents.
  Usage:
     <list> $cp->list_sections();
 
-The L<sections|/ATTRIBUTES:sections> attribute is an ArrayRef.
+The L<sections|/sections> attribute is an ArrayRef.
 B<list_sections()> is sugar to return all the elements of
-L<sections|/ATTRIBUTES:sections>.
+L<sections|/sections>.
 
 =head2 new
 
@@ -2867,9 +2909,9 @@ attributes.
  Usage:
     <Scalar> $cp->perform_disposition();
 
-The L<disposition|/ATTRIBUTES:disposition> attribute determines the final
+The L<disposition|/disposition> attribute determines the final
 actions of the Proxy, which are carried out by B<perform_disposition()>.
-Valid settings for L<disposition|/ATTRIBUTES:disposition> are:
+Valid settings for L<disposition|/disposition> are:
 
 =over 4
 
@@ -2914,28 +2956,28 @@ is:
  Usage:
     <void> $cp->prepend_handler_package( $pkg <, $pkg2...>);
 
-The attribute L<handler_pkgs|/ATTRIBUTES:handler_pkgs> is an ArrayRef.
+The attribute L<handler_pkgs|/handler_pkgs> is an ArrayRef.
 B<prepend_handler_package()> is sugar to make adding packages to the front
-of L<handler_pkgs|/ATTRIBUTES:handler_pkgs> easier.
+of L<handler_pkgs|/handler_pkgs> easier.
 
 =head2 prepend_section
 
  Usage:
     <void> $cp->prepend_section( $array_ref <, $array_ref2...>);
 
-The L<sections|/ATTRIBUTES:sections> attribute is an ArrayRef containing
+The L<sections|/sections> attribute is an ArrayRef containing
 child ArrayRefs, one for each Section (like filled(), fixed() etc.).
 B<prepend_section()> is sugar to make adding a Section request to the
-L<sections|/ATTRIBUTES:sections> attribute, easier.  Section requests are
-added to the front of L<sections|/ATTRIBUTES:sections> (prepended).
+L<sections|/sections> attribute, easier.  Section requests are
+added to the front of L<sections|/sections> (prepended).
 
 =head2 raw
 
  Usage:
     <void> $cp->raw( $content );
 
-B<raw()> provides an alternative to L<fixed()|/METHODS:fixed> and
-L<filled()|/METHODS:filled> for composing diagnostic Sections.
+B<raw()> provides an alternative to L<fixed()|/fixed> and
+L<filled()|/filled> for composing diagnostic Sections.
 
 In effect, B<raw()> creates a Section containing only B<$content>.
 You are completely responsible for the final appearance of the Section;
@@ -2944,10 +2986,10 @@ platform appropriate line termination.
 
 In actuality, all the B<raw()> method does is to add a request for a raw
 Section onto the B<sections> list; the actual processing is performed by
-the L<raw_section()|/METHODS:raw_section> method when the
-L<render_message()|/METHODS:render_message> traverses B<sections>.
+the L<raw_section()|/raw_section> method when the
+L<render_message()|/render_message> traverses B<sections>.
 
-See L<raw_section()|/METHODS:raw_section> for details.
+See L<raw_section()|/raw_section> for details.
 
 =head2 raw_section
 
@@ -2955,8 +2997,8 @@ See L<raw_section()|/METHODS:raw_section> for details.
     <String> $cp->raw_section( $content );
 
 B<raw_section()> is not usually invoked directly by users.
-L<render_message()|/METHODS:render_message> invokes B<raw_section()> as it
-traverses the list in the L<sections|/ATTRIBUTES:sections> attribute.
+L<render_message()|/render_message> invokes B<raw_section()> as it
+traverses the list in the L<sections|/sections> attribute.
 
 B<raw_section()> does nothing; the returned string is simply a copy of
 I<$content>.
@@ -2967,18 +3009,18 @@ I<$content>.
     <String> $cp->render_message();
 
 The behavior of B<render_message()> is dependent on the setting of the
-attribute L<as_yaml|/ATTRIBUTES:as_yaml>.  If
-L<as_yaml|/ATTRIBUTES:as_yaml> is False, which is the default, then
+attribute L<as_yaml|/as_yaml>.  If
+L<as_yaml|/as_yaml> is False, which is the default, then
 B<render_message()> walks the list of section-specifications stored in
-the L<sections|/ATTRIBUTES:sections> attribute, executing each one in
+the L<sections|/sections> attribute, executing each one in
 turn.  The return value is formed by concatenating each of the
 results.
 
-The L<sections|/ATTRIBUTES:sections> attribute, an ArrayRef, is
+The L<sections|/sections> attribute, an ArrayRef, is
 expected to contain any number of ArrayRef elements.  Each child ArrayRef
 must have at least one element: the name of a method to be invoked.  Any
 remaining elements are passed to the invoked method as arguments.  For
-example, a L<sections|/ATTRIBUTES:sections> specification that looks like
+example, a L<sections|/sections> specification that looks like
 this:
 
     [
@@ -2995,25 +3037,25 @@ Results in execution of something like this:
 
     return $buffer;
 
-The L<sections|/ATTRIBUTES:sections> list is unchanged by the traversal, so
+The L<sections|/sections> list is unchanged by the traversal, so
 B<render_message()> may be invoked repeatedly.  Settings for attributes
-like L<banner_title|/ATTRIBUTES:banner_title>,
-L<columns|/ATTRIBUTES:columns>, L<section_title|/ATTRIBUTES:section_title>,
-L<header_indent|/ATTRIBUTES:header_indent> and
-L<body_indent|/ATTRIBUTES:body_indent> can be changed between invocations
+like L<banner_title|/banner_title>,
+L<columns|/columns>, L<section_title|/section_title>,
+L<header_indent|/header_indent> and
+L<body_indent|/body_indent> can be changed between invocations
 to vary the message format.
 
-Changing attributes like L<context|/ATTRIBUTES:context>, which are
+Changing attributes like L<context|/context>, which are
 referenced during the generation of Section specifications, have no effect.
 
-If L<as_yaml|/ATTRIBUTES:as_yaml> is True then we return a string that
+If L<as_yaml|/as_yaml> is True then we return a string that
 is a YAML dump of the B<Carp::Proxy> object, something like this:
 
     return YAML::XS::Dump( $cp );
 
 The intent here is to use YAML to serialize all aspects of the
 B<Carp::Proxy> object.  Assuming that have a
-L<disposition|/ATTRIBUTES:disposition> setting of B<die>, our
+L<disposition|/disposition> setting of B<die>, our
 serialized object will be written out to STDERR, where it can be captured
 by a parent process and reconstituted.  The reconstituted object can
 be examined, or augmented with parental context and rethrown.
@@ -3025,7 +3067,7 @@ be examined, or augmented with parental context and rethrown.
 
 The B<synopsis()> method employs B<Pod::Usage::pod2usage()> to create a
 Section from the user's POD.  User POD is located by searching in the
-L<pod_filename|/ATTRIBUTES:pod_filename> attribute.
+L<pod_filename|/pod_filename> attribute.
 
 The call to B<pod2usage()> is passed a HashRef with the following options:
 
@@ -3044,7 +3086,7 @@ allowing you to override or supplement these defaults.
 Internally, B<Carp::Proxy> uses B<synopsis()> to extract sections from
 this POD document when composing diagnostics.  If, for instance, you
 supply a negative value as the setting for
-L<body_indent|/ATTRIBUTES:body_indent> you get an exception.  The text of
+L<body_indent|/body_indent> you get an exception.  The text of
 the exception is generated with something like this:
 
     $cp->synopsis( -verbose  => 99,
@@ -3101,8 +3143,8 @@ names are tested for existence:
     <package>::usage_<invoker>
 
 Just like the search for a Handler, the settings for
-L<handler_prefix|/ATTRIBUTES:handler_prefix> and
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> influence the where and what of
+L<handler_prefix|/handler_prefix> and
+L<handler_pkgs|/handler_pkgs> influence the where and what of
 the search for a usage subroutine.
 
 If none of the attempts finds an existing subroutine then the next entry in
@@ -3152,9 +3194,9 @@ search would have eventually located B<_usage_my_func()>.
 =head1 HANDLER SEARCH
 
 A Proxy invocation contains, as its first argument, a string that will
-become the L<handler_name|/ATTRIBUTES:handler_name> attribute.  The string
+become the L<handler_name|/handler_name> attribute.  The string
 C<'no_such_author'> is used to establish
-L<handler_name|/ATTRIBUTES:handler_name> in this example:
+L<handler_name|/handler_name> in this example:
 
     fatal 'no_such_author', $who;
 
@@ -3162,9 +3204,9 @@ The Proxy calls the Handler to build up the diagnostic message, but first
 it must locate the requested subroutine.
 
 The search for a Handler subroutine is made in the packages found in
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs>.  Users can specify a list of
+L<handler_pkgs|/handler_pkgs>.  Users can specify a list of
 packages to search by supplying the tagged list to B<use()> or
-B<import()>.
+L<import()|/import>.
 
     package main;
     use Carp::Proxy fatal => { handler_pkgs => [qw( Support Common )]};
@@ -3173,31 +3215,31 @@ You can also sub-class B<Carp::Proxy> and override
 B<_build_handler_pkgs()> to return an ArrayRef of the desired packages.
 
 The Proxy always appends a copy of
-L<proxy_package|/ATTRIBUTES:proxy_package> to
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> after object construction.
-L<proxy_package|/ATTRIBUTES:proxy_package> is the package that issued the
-B<use()>, or made the call to B<import()>.  In the above example
-L<handler_pkgs|/ATTRIBUTES:handler_pkgs> becomes:
+L<proxy_package|/proxy_package> to
+L<handler_pkgs|/handler_pkgs> after object construction.
+L<proxy_package|/proxy_package> is the package that issued the
+B<use()>, or made the call to L<import()|/import>.  In the above example
+L<handler_pkgs|/handler_pkgs> becomes:
 
     [qw( Support Common main )]
 
 The subroutine that is the target of the search is influenced by the
-setting of L<handler_prefix|/ATTRIBUTES:handler_prefix>.  When the
-L<handler_prefix|/ATTRIBUTES:handler_prefix> attribute is undef, the Proxy
-builds three templates from L<handler_name|/ATTRIBUTES:handler_name>.  The
+setting of L<handler_prefix|/handler_prefix>.  When the
+L<handler_prefix|/handler_prefix> attribute is undef, the Proxy
+builds three templates from L<handler_name|/handler_name>.  The
 first subroutine that exists is used as the Handler.
 
     <package>::_cp_<handler_name>
     <package>::_<handler_name>
     <package>::<handler_name>
 
-If L<handler_prefix|/ATTRIBUTES:handler_prefix> is not undef then only one
+If L<handler_prefix|/handler_prefix> is not undef then only one
 template is tried:
 
     <package>::<handler_prefix><handler_name>
 
 If a Handler subroutine is not found by the template search then a check
-is made to see if L<handler_name|/ATTRIBUTES:handler_name> matches one of
+is made to see if L<handler_name|/handler_name> matches one of
 the B<Carp::Proxy> builtin Handlers.  The builtin Handlers are surrounded
 by C<'*'> characters since those are guaranteed not to collide with user
 Handlers.
@@ -3241,7 +3283,7 @@ its own:
 
 These are handler subroutines that come with B<Carp::Proxy>.
 
-=head2 *internal_error*
+=head2 internal_error
 
  Usage:
     <void> fatal '*internal_error*', @strings;
@@ -3262,7 +3304,7 @@ B<$SIG{__WARN__}>.
 A Filled Section is generated from the string interpolation of
 I<@strings>.  In the above example, the argument is the message that was
 passed to B<die()>, like "Illegal division by zero".  A
-L<contact_maintainer()|/METHODS:contact_maintainer> Section is also added.
+L<contact_maintainer()|/contact_maintainer> Section is also added.
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Fatal: << internal error >>
@@ -3276,7 +3318,7 @@ L<contact_maintainer()|/METHODS:contact_maintainer> Section is also added.
       *** Stacktrace ***
         ...
 
-=head2 *assertion_failure*
+=head2 assertion_failure
 
  Usage:
     <void> fatal '*assertion_failure*', $description <, $hashref>;
@@ -3322,7 +3364,7 @@ does a great job of serializing complex data structures.
       *** Stacktrace ***
         ...
 
-=head2 *configuration*
+=head2 configuration
 
  Usage:
     <HashRef> fatal '*configuration*';
@@ -3333,14 +3375,14 @@ calling environment.  Any changes to the referenced hash affect all future
 Proxy invocations.
 
 Proxy configuration is established when a Proxy is created - either during
-B<use()> or B<import()>.  Configuration consists of attribute =E<gt> value
+B<use()> or L<import()|/import>.  Configuration consists of attribute =E<gt> value
 pairs that are supplied by the user.
 
     use Carp::Proxy ( warning => { banner_title => 'Warning',
                                    disposition  => 'warn'      });
 
-In the above snippet, L<banner_title|/ATTRIBUTES:banner_title> and
-L<disposition|/ATTRIBUTES:disposition>, are internally held in a
+In the above snippet, L<banner_title|/banner_title> and
+L<disposition|/disposition>, are internally held in a
 closure-based hash that persists across all invocations of the Proxy.  The
 B<*configuration*> Handler causes the Proxy to return a reference to this
 internal hash.
@@ -3414,29 +3456,29 @@ L<http://search.cpan.org/dist/Carp-Proxy/>
 
 =over 4
 
-=item B<perldoc perlvar>
+=item perldoc L<perlvar>
 
 The section on $CHILD_ERROR describes information packing when a child
 process terminates.  This is used by
-L<decipher_child_error()|/METHODS:decipher_child_error>.
+L<decipher_child_error()|/decipher_child_error>.
 
-=item B<perldoc Pod::Usage>
+=item perldoc L<Pod::Usage>
 
-The L<synopsis()|/METHODS:synopsis> method calls B<pod2usage()> to format
+The L<synopsis()|/synopsis> method calls B<pod2usage()> to format
 the B<SYNOPSIS> section from user POD.
 
-=item B<perldoc YAML::XS>
+=item perldoc L<YAML::XS>
 
-The L<as_yaml|/ATTRIBUTES:as_yaml> attribute produces a YAML Dump of the
+The L<as_yaml|/as_yaml> attribute produces a YAML Dump of the
 B<Carp::Proxy> object so that it can be reconstituted later.
 
-The L<*assertion_failure*|/BUILTIN-HANDLERS:*assertion_failure*> builtin
+The L<*assertion_failure*|/assertion_failure> builtin
 Handler produces a Section containing YAML Dump of a user HashRef.
 
-=item B<perldoc Carp>
+=item perldoc L<Carp>
 
 The 'croak' and 'confess' concepts were originated by B<Carp>.  If you are
-making a Do-it-yourself CodeRef for L<context|/ATTRIBUTES:context> then
+making a Do-it-yourself CodeRef for L<context|/context> then
 B<Carp>'s B<longmess()> or B<longmess_heavy()> may prove useful.
 
 =back
