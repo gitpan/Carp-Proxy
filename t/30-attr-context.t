@@ -35,20 +35,40 @@ main();
 # outside of main().
 #-----
 SKIP: {
-    my $pid = open my( $fd ), '-|';
 
-    skip 'Cannot Fork', 1
+    #-----
+    # open $fd, "-|" fails on windows, but perldoc perlfork suggests this
+    # workaround using pipe() and fork().
+    #-----
+
+    my( $fd, $child );
+
+    skip 'Cannot pipe()', 1
+        if not pipe $fd, $child;
+
+    my $pid = fork();
+
+    skip 'Cannot fork()', 1
         if not defined $pid;
 
-    if (not $pid) { #----- Child
+    if (not $pid) {     #----- Child process
+
+        close $fd;
+
+        die 'Cannot dup open'
+            if not open STDOUT, ">&=" . fileno($child);
 
         close STDERR;
         open STDERR, '>&STDOUT';
+
         fatal_croak 'handler';
+
         exit 0;   # not reached
     }
 
     #----- Parent
+
+    close $child;
 
     #----- Slurp the entire message.
     my $diagnostic = do{ local $INPUT_RECORD_SEPARATOR = undef; <$fd>; };
