@@ -1,7 +1,7 @@
 # -*- cperl -*-
 use warnings;
 use strict;
-use v5.14;
+use 5.010;
 
 use English;
 use Test::More;

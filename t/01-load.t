@@ -1,5 +1,6 @@
 # -*- cperl -*-
 
+use 5.010;
 use English qw( -no_match_vars );
 use Test::More tests => 1;
 

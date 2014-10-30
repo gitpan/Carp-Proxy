@@ -1,7 +1,13 @@
 Revision history for Carp-Proxy
 
+0.10    29 Oct 2014
+        Perl dependency moved from 5.14.0 to 5.10.0.  Also tweaked the
+        t/30-attr-context.t test in hopes of picking up a few more
+        Windows platforms.
+
 0.09    25 Oct 2014
-        Fixes for more Windows tests
+        Fixes for more Windows tests.  We now use the 'open -|' emulation
+        suggested in perldoc perlfork.
 
 0.08    Oct 23 2014
         Attempts to rectify test failures on Windows

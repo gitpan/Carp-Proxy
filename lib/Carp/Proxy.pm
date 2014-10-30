@@ -2,9 +2,9 @@
 package Carp::Proxy;
 use warnings;
 use strict;
-use 5.014;
+use 5.010;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use Moose;
 

@@ -36,5 +36,5 @@ requires:
   Sub::Name: 0
   YAML::XS: 0
   overload: 0
-  perl: 5.014000
-version: 0.09
+  perl: 5.010000
+version: 0.10

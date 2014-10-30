@@ -1,7 +1,7 @@
 # -*- cperl -*-
 use warnings;
 use strict;
-use v5.14;
+use 5.010;
 
 use English '-no_match_vars';
 use File::Basename qw( basename );
@@ -41,21 +41,29 @@ SKIP: {
     # workaround using pipe() and fork().
     #-----
 
+    #-----
+    # There are "Dubious" failures on Windows where all tests pass but the
+    # exit status is non-zero.  I am speculating that exit status gets set
+    # by our fork() emulation when the child dies.  Hopefully this will
+    # avert those failures.   I hate Windows.
+    #-----
+    local $CHILD_ERROR;
+
     my( $fd, $child );
 
-    skip 'Cannot pipe()', 1
+    die "Cannot pipe() $ERRNO"
         if not pipe $fd, $child;
 
     my $pid = fork();
 
-    skip 'Cannot fork()', 1
+    die "Cannot fork(), $ERRNO"
         if not defined $pid;
 
     if (not $pid) {     #----- Child process
 
         close $fd;
 
-        die 'Cannot dup open'
+        die "Cannot dup open $ERRNO"
             if not open STDOUT, ">&=" . fileno($child);
 
         close STDERR;
@@ -96,6 +104,7 @@ SKIP: {
 }
 
 done_testing();
+
 
 #----------------------------------------------------------------------
 
