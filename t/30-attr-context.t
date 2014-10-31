@@ -36,47 +36,23 @@ main();
 #-----
 SKIP: {
 
-    #-----
-    # open $fd, "-|" fails on windows, but perldoc perlfork suggests this
-    # workaround using pipe() and fork().
-    #-----
+    skip 'Forking with "open -|" is broken on windows', 1
+        if $OSNAME =~ / MSWin /xi;
 
-    #-----
-    # There are "Dubious" failures on Windows where all tests pass but the
-    # exit status is non-zero.  I am speculating that exit status gets set
-    # by our fork() emulation when the child dies.  Hopefully this will
-    # avert those failures.   I hate Windows.
-    #-----
-    local $CHILD_ERROR;
+    my $pid = open my( $fd ), '-|';
 
-    my( $fd, $child );
-
-    die "Cannot pipe() $ERRNO"
-        if not pipe $fd, $child;
-
-    my $pid = fork();
-
-    die "Cannot fork(), $ERRNO"
+    skip 'Cannot Fork', 1
         if not defined $pid;
 
-    if (not $pid) {     #----- Child process
-
-        close $fd;
-
-        die "Cannot dup open $ERRNO"
-            if not open STDOUT, ">&=" . fileno($child);
+    if (not $pid) { #----- Child
 
         close STDERR;
         open STDERR, '>&STDOUT';
-
         fatal_croak 'handler';
-
         exit 0;   # not reached
     }
 
     #----- Parent
-
-    close $child;
 
     #----- Slurp the entire message.
     my $diagnostic = do{ local $INPUT_RECORD_SEPARATOR = undef; <$fd>; };
