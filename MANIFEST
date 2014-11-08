@@ -42,6 +42,7 @@ t/30-attr-harvested.t
 t/30-attr-header_indent.t
 t/30-attr-maintainer.t
 t/30-attr-pod_filename.t
+t/30-attr-proxy_name.t
 t/30-attr-tags.t
 t/30-attr-type-validation.t
 t/99-pod.t

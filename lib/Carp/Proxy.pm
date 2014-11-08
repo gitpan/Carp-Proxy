@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use 5.010;
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Moose;
 
@@ -279,6 +279,7 @@ sub _build_handler_prefix  { return undef;                  }
 sub _build_header_indent   { return 2;                      }
 sub _build_maintainer      { return '';                     }
 sub _build_pod_filename    { return $_[0]->proxy_filename;  }
+sub _build_proxy_name      { return 'fatal';                }
 sub _build_section_title   { return 'Description';          }
 sub _build_sections        { return [];                     }
 sub _build_tags            { return {};                     }
@@ -423,7 +424,7 @@ sub import {
     #-----
     if (not @proxy_attrlist_pairs) {
 
-        $by_proxyname{ 'fatal' } = {};
+        $by_proxyname{ $class->_build_proxy_name() } = {};
     }
     #----- Just one argument names a proxy with default attributes
     elsif ( 1 == @proxy_attrlist_pairs ) {
@@ -2303,7 +2304,7 @@ a sub class allows you to change the default name.
 
 =over 4
 
-=item Builder:    None; L<new()|/new> requires I<proxy_name> specification
+=item Builder:    _build_proxy_name(); L<new()|/new> requires I<proxy_name>
 
 =item Default:    'fatal'
 
@@ -2852,9 +2853,9 @@ will be constructed for each pair.
 
 If there is only one argument it is taken to be a proxyname introducing an
 empty hashref.  If there are no arguments then it is assumed that the
-default for the L<proxy_name|/proxy_name> attribute (C<'fatal'>), should be
-used for the proxyname and an empty hashref used for the attribute
-initializations.
+builder-specified default for the L<proxy_name|/proxy_name> attribute
+(C<'fatal'>), should be used for the proxyname and an empty hashref used for
+the attribute initializations.
 
 B<import()> probes the callstack to determine the package and filename of
 the user code that called B<import()>.  B<import()> uses these values to create
@@ -2903,6 +2904,11 @@ useful if you using the object for your own purposes.  There are a large
 number of required attribute-value pairs.  Specification for any additional
 attributes is supported.  Builder methods are invoked for all unspecified
 attributes.
+
+There is some inconsistency around the L<proxy_name|/proxy_name> attribute.
+The L<proxy_name|/proxy_name> is required by I<new()> even though it has a
+builder method.  The builder is for use by L<import()|/import>, which
+invokes it if needed, and passes the result to new().
 
 =head2 perform_disposition
 
@@ -3009,26 +3015,24 @@ I<$content>.
     <String> $cp->render_message();
 
 The behavior of B<render_message()> is dependent on the setting of the
-attribute L<as_yaml|/as_yaml>.  If
-L<as_yaml|/as_yaml> is False, which is the default, then
-B<render_message()> walks the list of section-specifications stored in
-the L<sections|/sections> attribute, executing each one in
-turn.  The return value is formed by concatenating each of the
-results.
+attribute L<as_yaml|/as_yaml>.  If L<as_yaml|/as_yaml> is False, which is
+the default, then B<render_message()> walks the list of
+section-specifications stored in the L<sections|/sections> attribute,
+executing each one in turn.  The return value is formed by concatenating
+each of the results.
 
-The L<sections|/sections> attribute, an ArrayRef, is
-expected to contain any number of ArrayRef elements.  Each child ArrayRef
-must have at least one element: the name of a method to be invoked.  Any
-remaining elements are passed to the invoked method as arguments.  For
-example, a L<sections|/sections> specification that looks like
-this:
+The L<sections|/sections> attribute, an ArrayRef, is expected to contain any
+number of ArrayRef elements.  Each child ArrayRef must have at least one
+element: the name of a method to be invoked.  Any remaining elements are
+passed to the invoked method as arguments.  For example, a
+L<sections|/sections> specification that looks like this:
 
     [
      [ 'filled_section', 'content1', 'title1' ],
      [ 'filled_section', 'content2', 'title2' ],
     ]
 
-Results in execution of something like this:
+Results in the execution of something like this:
 
     my $buffer = $cp->banner();
 
@@ -3038,12 +3042,11 @@ Results in execution of something like this:
     return $buffer;
 
 The L<sections|/sections> list is unchanged by the traversal, so
-B<render_message()> may be invoked repeatedly.  Settings for attributes
-like L<banner_title|/banner_title>,
-L<columns|/columns>, L<section_title|/section_title>,
-L<header_indent|/header_indent> and
-L<body_indent|/body_indent> can be changed between invocations
-to vary the message format.
+B<render_message()> may be invoked repeatedly.  Settings for attributes like
+L<banner_title|/banner_title>, L<columns|/columns>,
+L<section_title|/section_title>, L<header_indent|/header_indent> and
+L<body_indent|/body_indent> can be changed between invocations to vary the
+message format.
 
 Changing attributes like L<context|/context>, which are
 referenced during the generation of Section specifications, have no effect.
@@ -3054,7 +3057,7 @@ is a YAML dump of the B<Carp::Proxy> object, something like this:
     return YAML::XS::Dump( $cp );
 
 The intent here is to use YAML to serialize all aspects of the
-B<Carp::Proxy> object.  Assuming that have a
+B<Carp::Proxy> object.  Assuming that we have a
 L<disposition|/disposition> setting of B<die>, our
 serialized object will be written out to STDERR, where it can be captured
 by a parent process and reconstituted.  The reconstituted object can
@@ -3083,11 +3086,11 @@ allowing you to override or supplement these defaults.
 
 =head3 Example
 
-Internally, B<Carp::Proxy> uses B<synopsis()> to extract sections from
-this POD document when composing diagnostics.  If, for instance, you
-supply a negative value as the setting for
-L<body_indent|/body_indent> you get an exception.  The text of
-the exception is generated with something like this:
+Internally, B<Carp::Proxy> uses B<synopsis()> to extract sections from this
+POD document when composing diagnostics.  If, for instance, you supply a
+negative value as the setting for L<body_indent|/body_indent> you get an
+exception.  The text of the exception is generated using something like
+this:
 
     $cp->synopsis( -verbose  => 99,
                    -sections => ["ATTRIBUTES/body_indent"],
@@ -3119,9 +3122,9 @@ The resulting diagnostic looks something like this:
       *** Stacktrace ***
         ...
 
-See L<'perldoc Pod::Usage'|Pod::Usage> and L<'perldoc
-Pod::Select'|Pod::Select> for details about using B<-verbose> and
-B<-sections>.
+See L<'perldoc Pod::Usage'|Pod::Usage> and
+L<'perldoc Pod::Select'|Pod::Select> for details about using B<-verbose>
+and B<-sections>.
 
 =head2 usage
 
@@ -3163,7 +3166,7 @@ public subroutine.
         my( $cp ) = @_;
 
         $cp->fixed( 'Usage: <num> my_func( val );', 'Usage' );
-        $cp->filled( 'my_func() returns blah blah blah.' );
+        $cp->filled( 'my_func() returns blah blah blah.', '' );
     }
 
     sub my_func {
@@ -3375,8 +3378,8 @@ calling environment.  Any changes to the referenced hash affect all future
 Proxy invocations.
 
 Proxy configuration is established when a Proxy is created - either during
-B<use()> or L<import()|/import>.  Configuration consists of attribute =E<gt> value
-pairs that are supplied by the user.
+B<use()> or L<import()|/import>.  Configuration consists of attribute
+=E<gt> parameter pairs that are supplied by the user.
 
     use Carp::Proxy ( warning => { banner_title => 'Warning',
                                    disposition  => 'warn'      });
@@ -3390,7 +3393,9 @@ internal hash.
 Here is an example of wanting to change Proxy behavior after Proxy
 creation:
 
+    #----- fatal() does NOT throw an exception here...
     my $config = fatal '*configuration*';
+ 
     $config->{ disposition } = \&GUI::as_dialog;
 
 As alluded to above, we want our GUI program to use conventional STDERR
@@ -3461,6 +3466,11 @@ L<http://search.cpan.org/dist/Carp-Proxy/>
 The section on $CHILD_ERROR describes information packing when a child
 process terminates.  This is used by
 L<decipher_child_error()|/decipher_child_error>.
+
+=item perldoc -f die
+
+The documentation on Perl's B<die()> details how the exit code for a process
+depends on B<$ERRNO> and $<CHIIILD_ERROR>.
 
 =item perldoc L<Pod::Usage>
 
