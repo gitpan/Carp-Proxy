@@ -10,6 +10,7 @@ use Test::Exception;
 use Carp::Proxy;
 
 main();
+aux();
 done_testing();
 
 #----------------------------------------------------------------------
@@ -27,6 +28,12 @@ sub main {
     underscore();
     carpproxy();
     intermediary();
+    return;
+}
+
+sub aux {
+
+    missing();
     return;
 }
 
@@ -116,6 +123,14 @@ sub intermediary {
 
     return;
 }
+
+sub missing {
+
+    throws_ok{ fatal 'handler' }
+        qr{\Q<< no usage documentation >>\E}x,
+        'Detect absence of a viable usage handler';
+}
+
 
 __END__
 

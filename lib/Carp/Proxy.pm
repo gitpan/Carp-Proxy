@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use 5.010;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Moose;
 
@@ -258,10 +258,16 @@ my @VALID_DISPOSITION_STRINGS = qw( return warn die );
 my $VALID_DISPOSITION_REX = _fixed_string_rex( @VALID_DISPOSITION_STRINGS );
 
 #----- Some symbolic constants for indexing the list returned by caller()
-sub _CALLER_PACKAGE    () { return 0 }
-sub _CALLER_FILENAME   () { return 1 }
-sub _CALLER_LINE       () { return 2 }
-sub _CALLER_SUBROUTINE () { return 3 }
+my $CALLER_PACKAGE;
+my $CALLER_FILENAME;
+my $CALLER_LINE;
+my $CALLER_SUBROUTINE;
+BEGIN {
+    Readonly::Scalar $CALLER_PACKAGE    => 0;
+    Readonly::Scalar $CALLER_FILENAME   => 1;
+    Readonly::Scalar $CALLER_LINE       => 2;
+    Readonly::Scalar $CALLER_SUBROUTINE => 3;
+}
 
 sub _overload_stringification { return $_[0]->render_message; }
 
@@ -483,7 +489,7 @@ sub _create_proxy {
 
     #----- caller(1) should be import() called from userland
     my  ( $user_pkg,       $user_fname      ) = (caller 1)
-        [ _CALLER_PACKAGE, _CALLER_FILENAME ];
+        [ $CALLER_PACKAGE, $CALLER_FILENAME ];
 
     my $fq_proxy_name = $user_pkg . '::' . $proxy_name;
 
@@ -744,7 +750,7 @@ sub _find_proxy_frame {
     my $frame = 1;
     while (1) {
 
-        my( $sub ) = (caller $frame)[ _CALLER_SUBROUTINE ];
+        my( $sub ) = (caller $frame)[ $CALLER_SUBROUTINE ];
 
         error 'no_proxy_frame', $self
             if not defined $sub;
@@ -764,7 +770,7 @@ sub _cp_no_proxy_frame {
     my $frames = '';
     for( my $i=0;   1;   ++$i ) {
 
-        my( $subr ) = (caller $i)[ _CALLER_SUBROUTINE ];
+        my( $subr ) = (caller $i)[ $CALLER_SUBROUTINE ];
 
         last
             if not defined $subr;
@@ -798,9 +804,9 @@ sub _file_line_subr {
     eval{
         ( $file, $line, $subr ) =
             (caller 1 + $caller_index)[
-                                       _CALLER_FILENAME,
-                                       _CALLER_LINE,
-                                       _CALLER_SUBROUTINE,
+                                       $CALLER_FILENAME,
+                                       $CALLER_LINE,
+                                       $CALLER_SUBROUTINE,
                                       ];
     };
 
@@ -1167,9 +1173,9 @@ sub usage {
 
     for(my $index = $self->_find_proxy_frame();   1;   ++$index ) {
 
-        my( $subr ) = (caller $index)[ _CALLER_SUBROUTINE ];
+        my( $subr ) = (caller $index)[ $CALLER_SUBROUTINE ];
 
-        last
+        error 'no_usage_documentation', $self
             if not defined $subr;
 
         #----- Discard any package qualifiers
@@ -1183,10 +1189,8 @@ sub usage {
             if not $where;
 
         $where->( $self );
-        return;
+        last;
     }
-
-    error 'no_usage_documentation', $self;
 
     return;
 }
@@ -1205,9 +1209,6 @@ EOF
 
     $prefix //= '(undef)';
 
-    $prefix = q('')
-        if not length $prefix;
-
     $cp->fixed(<<"EOF", 'Missing Handler - Secondary Error');
 handler_pkgs:   @{[ join ' : ', $original_cp->list_handler_pkgs ]}
 handler_prefix: $prefix
@@ -1223,9 +1224,11 @@ BEGIN{
     Readonly::Scalar my $CORE_DUMP   => 0x80;
 
     sub decipher_child_error {
-        my( $cp ) = @_;
+        my( $cp ) = shift;
 
-        my $child_error = $cp->child_error;
+        my $child_error = ( @_ and defined( $_[0] ) and $_[0] =~ /\A \d+ \z/x )
+            ? shift
+            : $cp->child_error;
 
         if ( 0 == $child_error ) {
 
@@ -1580,8 +1583,8 @@ wrapper subroutine, called a Proxy, to factor out the repeated sections.
 
 Proxys, like B<fatal()>, serve as elaborate, customizable replacements
 for B<warn()>, B<die()> and members of the B<Carp::> family like
-B<confess()>.  If we look at B<warn()>, B<die()>, B<confess()> and the like,
-we notice that they are all just different variations on two themes:
+B<confess()>.  If we look at B<warn()>, B<die()>, B<confess()> and the
+others, we notice that they are all just different variations on two themes:
 
     - Add locational context to a user-supplied message.
     - Throw some kind of exception.
@@ -1602,7 +1605,7 @@ The object overloads Perl's stringification operator with a message
 rendering method, causing uncaught exceptions to be nicely formatted.
 Exceptions that are caught can be modified and re-thrown.
 
-=head1 We are the 99%
+=head1 WE ARE THE 99%
 
 B<Carp::Proxy> has a long list of features, but getting started is easy.
 All you need for most day-to-day work is the Proxy and two methods:
@@ -1617,10 +1620,10 @@ L<fixed()|/fixed> methods.
 
 =head1 SAMPLE OUTPUT
 
-The formatted messages start off with a "Banner".  The Banner includes a
-title and the name of the Handler.  As the Banner is the first thing seen
-by users, it is helpful if the Handler name conveys a terse description of
-the situation.
+The formatted messages produced by the Proxy start off with a
+"Banner".  The Banner includes a title and the name of the Handler.
+As the Banner is the first thing seen by users, it is helpful if the
+Handler name conveys a terse description of the situation.
 
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Fatal: << cannot overwrite >>
@@ -1628,7 +1631,7 @@ the situation.
 
 Following the Banner are a series of "Sections" containing paragraphs of
 descriptive text.  Each Section is introduced by a "Header" sub-title
-that is wrapped in '***'.
+that is wrapped in *** stars ***.
 
       *** Description ***
         The destination file already exists.  An attempt was made
@@ -2599,6 +2602,8 @@ info.
 
  Usage:
     <void> $cp->decipher_child_error();
+    -or-
+    <void> $cp->decipher_child_error( $child_error );
 
 Perl's B<$CHILD_ERROR> (B<$?>) encodes several bits of information about
 how a child process terminates, see the B<perlvar> documentation on
@@ -2614,6 +2619,10 @@ L<filled()|/filled> Section.  Examples:
 
     *** Process terminated by signal ***
       The child process was terminated by SIGSEGV (signal 11).
+
+If a I<$child_error> argument is provided then the argument value is
+deciphered, otherwise the value held in the L<child_error|/child_error>
+attribute is used.
 
 =head2 directory
 
@@ -2654,23 +2663,25 @@ Output from B<Cwd::abs_path()> is used to form the body of the Section.
  Usage:
     <void> $cp->filled( $content <, $title >);
 
-B<filled()> and L<fixed()|/fixed> are the workhorse methods for
-composing diagnostic messages.
+B<filled()> creates a Section.  The Section is introduced with a
+L<header()|/header> containing I<$title>.  The body of the Section is
+produced by reformatting I<$content> into paragraphs of length-limited
+lines/
 
-In effect, B<filled()> creates a Section, consisting of paragraphs
-introduced with a *** Header *** line containing I<$title>.  If I<$title>
-is the empty string then no Header is included.  This makes it easy to
-chain together Fixed and Filled Sections under the same Header.  If
-I<$title> is not supplied, or undef, then the
-L<section_title|/section_title> attribute is used in its place.
+If I<$title> is not supplied, or if it is undef, then the
+L<section_title|/section_title> attribute is used in its place.  If
+I<$title> is an empty string then no Header is produced.  This makes it
+easy to chain together Fixed and Filled Sections under the same Header.
 
 Any spaces at the beginning of each paragraph in I<$content> sets the
 relative indentation for the whole paragraph.  Each paragraph may have
 different indentations.
 
-Paragraphs are reformatted by splitting them into words, on whitespace,
-then building up new lines by filling with words to achieve a target line
-width.  The target width is given by the L<columns|/columns>
+Paragraphs are reformatted by splitting them into words, on whitespace, then
+building up new lines.  Each line starts with spaces corresponding to the
+sum of L<header_indent|/header_indent>, L<body_indent|/body_indent> and any
+paragraph-specific indentation.  Lines are then filled with words to achieve
+a target line width.  The target width is given by the L<columns|/columns>
 attribute.
 
 In actuality, all the B<filled()> method does is to add a request for a
@@ -2691,37 +2702,33 @@ See L<filled_section()|/filled_section> for details.
     <String> $cp->filled_section( $content, $title );
 
 B<filled_section()> is not usually invoked directly by users.
-L<render_message()|/render_message> invokes B<filled_section()> as
-it traverses the list held in the L<sections|/sections>
-attribute.
+L<render_message()|/render_message> invokes B<filled_section()> as it
+traverses the list held in the L<sections|/sections> attribute.
 
 I<$content> is expected to be a string.  If I<$content> is an empty string
 then no Section is produced - an empty string is returned.
 
-I<$title> is converted into a section-title using
-L<header()|/header>.
+I<$title> is converted into a section-title using L<header()|/header>.
 
 I<$content> is split into paragraphs wherever there are two or more
 consecutive newlines, more specifically using this regex:
 
     /(?: \r? \n ){2,}/x
 
-Each paragraph is examined for leading whitespace.  This leading
-whitespace is processed by converting tabs into spaces on eight-column
-boundarys.  The converted whitespace forms the supplemental indentation
-for the paragraph.
+Each paragraph is examined for leading whitespace.  This leading whitespace
+is processed by converting tabs into spaces on eight-column boundarys.  The
+converted whitespace forms the supplemental indentation for the paragraph.
 
 New paragraphs are formed a line at a time by starting with an indentation
-amount corresponding to the sum of
-L<header_indent|/header_indent>,
-L<body_indent|/body_indent> and any supplemental indentation.
-Words from the old paragraph are added to the line so long as the line
-length does not exceed L<columns|/columns>.  At least one word
-is always added, even if L<columns|/columns> is exceeded.
+amount corresponding to the sum of L<header_indent|/header_indent>,
+L<body_indent|/body_indent> and any supplemental indentation.  Words from
+the old paragraph are added to the line so long as the line length does not
+exceed L<columns|/columns>.  At least one word is always added, even if
+L<columns|/columns> is exceeded.
 
 Any trailing whitespace is removed.  Output paragraphs are joined with a
-blank line.  The returned string is the concatenation of the section
-title, the paragraphs and a trailing blank line.
+blank line.  The returned string is the concatenation of the section title,
+the paragraphs and a trailing blank line.
 
 Override B<filled_section()> in a sub-class, rather than
 L<filled()|/filled>, if you want different filling behavior.
@@ -2731,30 +2738,28 @@ L<filled()|/filled>, if you want different filling behavior.
  Usage:
     <void> $cp->fixed( $content <, $title >);
 
-B<fixed()> and L<filled()|/filled> are the workhorse methods for
-composing diagnostic messages.
+B<fixed()> creates a Section.  The Section is introduced with a
+L<header()|/header> containing I<$title>.  The body of the Section is formed
+by retaining the formatting already present in I<$content>.
 
-In effect, B<fixed()> creates a Section, consisting of paragraphs
-introduced with a *** Header *** line containing I<$title>.  If I<$title>
-is the empty string then no Header is included.  This makes it easy to
-chain together Fixed and Filled Sections under the same Header.  If
-I<$title> is not supplied, or undef, then the
-L<section_title|/section_title> attribute is used in its place.
+If I<$title> is not supplied, or if it is undef, then the
+L<section_title|/section_title> attribute is used in its place.  If
+I<$title> is an empty string then no Header is included.  This makes it easy
+to chain together Fixed and Filled Sections under the same Header.
 
 Each line in I<$content> is indented by a constant amount corresponding to
-L<header_indent|/header_indent> +
-L<body_indent|/body_indent>.  Tabs are folded into spaces to
-preserve column alignment before the indentation is prepended.  Trailing
-whitespace on each line is replaced with an appropriate line terminator
-for the platform. I<$content> is otherwise unmolested.  Almost WYSIWYG.
+the L<header_indent|/header_indent> plus the L<body_indent|/body_indent>.
+Tabs in I<$content> are folded into spaces to preserve column alignment
+before the indentation is prepended.  Trailing whitespace on each line is
+replaced with an appropriate line terminator for the platform. I<$content>
+is otherwise unmolested.  Almost WYSIWYG.
 
 In actuality, all the B<fixed()> method does is to add a request for a
-"fixed_section" onto the end of the B<sections> list.  The actual
-processing is performed by the L<fixed_section()|/fixed_section>
-method when the L<render_message()|/render_message> method
-traverses the B<sections> list.  What this means is that the settings for
-attributes like L<section_title|/section_title>,
-L<header_indent|/header_indent> and
+"fixed_section" onto the end of the B<sections> list.  The actual processing
+is performed by the L<fixed_section()|/fixed_section> method when the
+L<render_message()|/render_message> method traverses the B<sections> list.
+What this means is that the settings for attributes like
+L<section_title|/section_title>, L<header_indent|/header_indent> and
 L<body_indent|/body_indent> only matter at the time
 L<render_message()|/render_message> is run.
 
@@ -2900,7 +2905,7 @@ L<sections|/sections>.
         );
 
 I<new()> is normally called by the Proxy, so this documentation is only
-useful if you using the object for your own purposes.  There are a large
+useful if you are using the object for your own purposes.  There are a large
 number of required attribute-value pairs.  Specification for any additional
 attributes is supported.  Builder methods are invoked for all unspecified
 attributes.
@@ -3470,7 +3475,7 @@ L<decipher_child_error()|/decipher_child_error>.
 =item perldoc -f die
 
 The documentation on Perl's B<die()> details how the exit code for a process
-depends on B<$ERRNO> and $<CHIIILD_ERROR>.
+depends on B<$ERRNO> and B<$CHILD_ERROR>.
 
 =item perldoc L<Pod::Usage>
 

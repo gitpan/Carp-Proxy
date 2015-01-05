@@ -1,5 +1,9 @@
 Revision history for Carp-Proxy
 
+0.13    04 Jan 2015
+        decipher_child_error now accepts an optional argument.  More
+        wordsmithing.
+
 0.12    07 Nov 2014
         _build_proxy_name() was being ignored in sub classes.  Minor
         wordsmithing in the POD.
